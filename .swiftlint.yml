@@ -1,0 +1,38 @@
+included:
+  - Sources
+  - Tests
+  - App
+  - AppUITests
+
+excluded:
+  - .build
+  - Fixtures
+
+opt_in_rules:
+  - empty_count
+  - explicit_init
+  - first_where
+  - sorted_imports
+  - closure_spacing
+  - operator_usage_whitespace
+
+line_length:
+  warning: 120
+  error: 160
+  ignores_comments: true
+
+identifier_name:
+  min_length: 1 # allow x, y, a, b for geometry
+  excluded: [x, y, a, b, u, v, p]
+
+type_name:
+  min_length: 2
+
+# Geometry/render code legitimately gets long; tune as the codebase grows.
+file_length:
+  warning: 600
+  error: 1000
+
+function_body_length:
+  warning: 80
+  error: 150
