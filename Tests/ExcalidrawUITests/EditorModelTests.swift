@@ -217,6 +217,26 @@ final class EditorModelTests: XCTestCase {
         XCTAssertFalse(m.showLibrary)
     }
 
+    func testLinkPromptAndCommit() {
+        let m = EditorModel()
+        m.select(tool: .rectangle)
+        draw(m, from: CGPoint(x: 0, y: 0), to: CGPoint(x: 50, y: 50))
+        m.controller.selectAll()
+        m.promptLink()
+        XCTAssertTrue(m.showLinkPrompt)
+        XCTAssertEqual(m.linkText, "")
+        m.linkText = "https://example.com"
+        m.commitLink()
+        XCTAssertFalse(m.showLinkPrompt)
+        XCTAssertEqual(m.controller.selectedElements.first?.base.link, "https://example.com")
+
+        m.promptLink()
+        XCTAssertEqual(m.linkText, "https://example.com") // pre-fills existing link
+        m.linkText = ""
+        m.commitLink()
+        XCTAssertNil(m.controller.selectedElements.first?.base.link)
+    }
+
     func testThemeAndZenToggles() {
         let m = EditorModel()
         XCTAssertEqual(m.theme, .light)

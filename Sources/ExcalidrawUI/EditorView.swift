@@ -46,6 +46,13 @@ public struct EditorView: View {
         .onChange(of: photoItem) { _, item in loadPhoto(item) }
         .sheet(isPresented: $model.showCommandPalette) { commandPalette }
         .sheet(isPresented: $model.showLibrary) { librarySheet }
+        .alert("Link", isPresented: $model.showLinkPrompt) {
+            TextField("https://example.com", text: $model.linkText)
+                .accessibilityIdentifier("link-field")
+            Button("Remove", role: .destructive) { model.linkText = ""; model.commitLink() }
+            Button("Cancel", role: .cancel) { model.showLinkPrompt = false }
+            Button("OK") { model.commitLink() }
+        }
     }
 
     private var librarySheet: some View {
@@ -204,6 +211,7 @@ public struct EditorView: View {
         Button("Duplicate") { model.duplicate() }
         Button("Bring to Front") { model.bringToFront() }
         Button("Send to Back") { model.sendToBack() }
+        Button("Link…") { model.promptLink() }
         Divider()
         Button("Delete", role: .destructive) { model.deleteSelected() }
     }

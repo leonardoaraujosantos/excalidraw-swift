@@ -169,6 +169,22 @@ public final class EditorModel: ObservableObject {
         revision += 1
     }
 
+    // MARK: Element linking
+
+    @Published public var showLinkPrompt = false
+    @Published public var linkText = ""
+
+    public func promptLink() {
+        linkText = controller.selectionLink ?? ""
+        showLinkPrompt = true
+    }
+
+    public func commitLink() {
+        controller.setLink(linkText)
+        showLinkPrompt = false
+        revision += 1
+    }
+
     // MARK: Action passthroughs
 
     public func group() {

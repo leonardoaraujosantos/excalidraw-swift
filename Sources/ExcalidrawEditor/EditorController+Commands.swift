@@ -7,6 +7,20 @@ import Foundation
 /// Split out of `EditorController` to keep that type focused on the pointer
 /// state machine.
 public extension EditorController {
+    // MARK: Element linking
+
+    /// Set (or clear, with `nil`/empty) a hyperlink on the selected elements.
+    func setLink(_ url: String?) {
+        let trimmed = url?.trimmingCharacters(in: .whitespacesAndNewlines)
+        updateSelected { $0.base.link = (trimmed?.isEmpty ?? true) ? nil : trimmed }
+    }
+
+    /// The link of the single selected element, if any (for the UI).
+    var selectionLink: String? {
+        guard selectedElements.count == 1 else { return nil }
+        return selectedElements.first?.base.link
+    }
+
     // MARK: Image crop
 
     /// Set (or clear, with `nil`) the crop rectangle on an image element, as one
