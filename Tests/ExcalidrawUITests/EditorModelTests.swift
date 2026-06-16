@@ -329,6 +329,21 @@ final class EditorModelTests: XCTestCase {
         XCTAssertFalse(m.canResetElbowShape)
     }
 
+    func testAddFlowchartNodeFromModel() {
+        let m = EditorModel()
+        m.select(tool: .rectangle)
+        draw(m, from: CGPoint(x: 0, y: 0), to: CGPoint(x: 100, y: 60))
+        m.controller.selectAll()
+        XCTAssertTrue(m.addFlowchartNode(.right))
+        // source + new node + connecting arrow.
+        XCTAssertEqual(m.controller.scene.visibleElements.count, 3)
+    }
+
+    func testAddFlowchartNodeRequiresSingleSelection() {
+        let m = EditorModel()
+        XCTAssertFalse(m.addFlowchartNode(.right)) // nothing selected
+    }
+
     func testThemeAndZenToggles() {
         let m = EditorModel()
         XCTAssertEqual(m.theme, .light)

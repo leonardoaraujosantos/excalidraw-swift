@@ -183,6 +183,18 @@ public final class EditorModel: ObservableObject {
         revision += 1
     }
 
+    // MARK: Flowchart
+
+    /// Spawn a flowchart node linked to the single selected node in `direction`
+    /// (default right, as bound to the Tab key) and select it.
+    @discardableResult
+    public func addFlowchartNode(_ direction: FlowchartDirection = .right) -> Bool {
+        guard controller.selectedIDs.count == 1, let id = controller.selectedIDs.first,
+              controller.addFlowchartNode(from: id, direction: direction) != nil else { return false }
+        revision += 1
+        return true
+    }
+
     // MARK: Localization
 
     @Published public var locale: ExcalidrawModel.Locale = Localization.english

@@ -380,6 +380,12 @@ public struct EditorView: View {
     // MARK: Input handling
 
     private func handleKeyPress(_ press: KeyPress) -> KeyPress.Result {
+        // Tab spawns a linked flowchart node to the right of the selected node;
+        // ⌥+arrow chooses a direction.
+        if press.key == .tab, model.addFlowchartNode(.right) { return .handled }
+        if press.modifiers.contains(.option), let direction = flowchartDirection(for: press.key),
+           model.addFlowchartNode(direction) { return .handled }
+
         guard let char = press.characters.first else { return .ignored }
         let chord = KeyChord(
             char,
@@ -390,6 +396,16 @@ public struct EditorView: View {
         guard let command = Shortcuts.command(for: chord) else { return .ignored }
         model.run(command)
         return .handled
+    }
+
+    private func flowchartDirection(for key: KeyEquivalent) -> FlowchartDirection? {
+        switch key {
+        case .upArrow: .up
+        case .downArrow: .down
+        case .leftArrow: .left
+        case .rightArrow: .right
+        default: nil
+        }
     }
 
     private func doExport() {
