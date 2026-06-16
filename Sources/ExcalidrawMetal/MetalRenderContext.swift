@@ -26,6 +26,17 @@
         private let sampleCount = 4
         private let pixelFormat: MTLPixelFormat = .rgba8Unorm
 
+        // Persistent GPU resources reused across frames: the MSAA + resolve
+        // render targets (rebuilt only when the pixel size changes) and a
+        // growable vertex buffer (reallocated only when geometry outgrows it).
+        // Reusing these avoids a per-frame allocation of ~15 MB of textures and
+        // a fresh vertex buffer every frame.
+        private var msaaTexture: MTLTexture?
+        private var resolveTexture: MTLTexture?
+        private var textureSize: (width: Int, height: Int)?
+        private var vertexBuffer: MTLBuffer?
+        private var readbackBuffer: [UInt8] = []
+
         init?() {
             guard let device = MTLCreateSystemDefaultDevice(),
                   let queue = device.makeCommandQueue() else { return nil }
@@ -73,38 +84,76 @@
             return try? device.makeRenderPipelineState(descriptor: descriptor)
         }
 
-        /// Rasterize `vertices` (interleaved `[x, y, r, g, b, a]`) into a
-        /// `pixelWidth × pixelHeight` RGBA image. Returns `nil` on any GPU failure.
-        func image(vertices: [Float], transform: Transform, pixelWidth: Int, pixelHeight: Int) -> CGImage? {
-            guard pixelWidth > 0, pixelHeight > 0, vertices.count >= 18 else { return nil }
-            let vertexCount = vertices.count / 6
+        /// Rasterize `vertices` (3 floats/vertex: x, y, packed-RGBA8) into a
+        /// `pixelWidth × pixelHeight` RGBA image over `clearColor`. Returns `nil`
+        /// on any GPU failure, or when there's nothing to draw (no triangles and
+        /// a transparent clear).
+        func image(
+            vertices: [Float], transform: Transform, clearColor: MTLClearColor,
+            pixelWidth: Int, pixelHeight: Int
+        ) -> CGImage? {
+            guard pixelWidth > 0, pixelHeight > 0 else { return nil }
+            let vertexCount = vertices.count / 3
+            // Nothing to paint: no triangles and a fully transparent background.
+            guard vertexCount >= 3 || clearColor.alpha > 0 else { return nil }
 
-            guard let msaaTexture = makeTexture(width: pixelWidth, height: pixelHeight, multisampled: true),
-                  let resolveTexture = makeTexture(width: pixelWidth, height: pixelHeight, multisampled: false),
-                  let vertexBuffer = device.makeBuffer(
-                      bytes: vertices, length: vertices.count * MemoryLayout<Float>.stride, options: .storageModeShared
-                  ) else { return nil }
+            guard let (msaaTexture, resolveTexture) = targets(width: pixelWidth, height: pixelHeight) else {
+                return nil
+            }
 
             let pass = MTLRenderPassDescriptor()
             pass.colorAttachments[0].texture = msaaTexture
             pass.colorAttachments[0].resolveTexture = resolveTexture
             pass.colorAttachments[0].loadAction = .clear
             pass.colorAttachments[0].storeAction = .multisampleResolve
-            pass.colorAttachments[0].clearColor = MTLClearColor(red: 0, green: 0, blue: 0, alpha: 0)
+            pass.colorAttachments[0].clearColor = clearColor
 
             guard let commandBuffer = queue.makeCommandBuffer(),
                   let encoder = commandBuffer.makeRenderCommandEncoder(descriptor: pass) else { return nil }
 
-            var transform = transform
-            encoder.setRenderPipelineState(pipeline)
-            encoder.setVertexBuffer(vertexBuffer, offset: 0, index: 0)
-            encoder.setVertexBytes(&transform, length: MemoryLayout<Transform>.stride, index: 1)
-            encoder.drawPrimitives(type: .triangle, vertexStart: 0, vertexCount: vertexCount)
+            if vertexCount >= 3, let vertexBuffer = uploadVertices(vertices) {
+                var transform = transform
+                encoder.setRenderPipelineState(pipeline)
+                encoder.setVertexBuffer(vertexBuffer, offset: 0, index: 0)
+                encoder.setVertexBytes(&transform, length: MemoryLayout<Transform>.stride, index: 1)
+                encoder.drawPrimitives(type: .triangle, vertexStart: 0, vertexCount: vertexCount)
+            }
             encoder.endEncoding()
             commandBuffer.commit()
             commandBuffer.waitUntilCompleted()
 
             return makeImage(from: resolveTexture, width: pixelWidth, height: pixelHeight)
+        }
+
+        /// The MSAA + resolve render targets for `width × height`, rebuilt only
+        /// when the size changes.
+        private func targets(width: Int, height: Int) -> (msaa: MTLTexture, resolve: MTLTexture)? {
+            if let msaaTexture, let resolveTexture, textureSize?.width == width, textureSize?.height == height {
+                return (msaaTexture, resolveTexture)
+            }
+            guard let msaa = makeTexture(width: width, height: height, multisampled: true),
+                  let resolve = makeTexture(width: width, height: height, multisampled: false) else { return nil }
+            msaaTexture = msaa
+            resolveTexture = resolve
+            textureSize = (width, height)
+            return (msaa, resolve)
+        }
+
+        /// Copy `vertices` into the reusable vertex buffer, growing it (with
+        /// headroom) only when the geometry no longer fits.
+        private func uploadVertices(_ vertices: [Float]) -> MTLBuffer? {
+            let byteLength = vertices.count * MemoryLayout<Float>.stride
+            if vertexBuffer == nil || (vertexBuffer?.length ?? 0) < byteLength {
+                guard let buffer = device.makeBuffer(length: byteLength * 2, options: .storageModeShared) else {
+                    return nil
+                }
+                vertexBuffer = buffer
+            }
+            guard let vertexBuffer else { return nil }
+            vertices.withUnsafeBytes { src in
+                _ = memcpy(vertexBuffer.contents(), src.baseAddress!, byteLength)
+            }
+            return vertexBuffer
         }
 
         private func makeTexture(width: Int, height: Int, multisampled: Bool) -> MTLTexture? {
@@ -125,15 +174,19 @@
             return device.makeTexture(descriptor: descriptor)
         }
 
-        /// Read the resolved RGBA texture back into a `CGImage` (row 0 = top).
+        /// Read the resolved RGBA texture back into a `CGImage` (row 0 = top),
+        /// reusing the readback byte buffer across frames.
         private func makeImage(from texture: MTLTexture, width: Int, height: Int) -> CGImage? {
             let bytesPerRow = width * 4
-            var bytes = [UInt8](repeating: 0, count: bytesPerRow * height)
+            let byteCount = bytesPerRow * height
+            if readbackBuffer.count != byteCount {
+                readbackBuffer = [UInt8](repeating: 0, count: byteCount)
+            }
             let region = MTLRegionMake2D(0, 0, width, height)
-            bytes.withUnsafeMutableBytes { raw in
+            readbackBuffer.withUnsafeMutableBytes { raw in
                 texture.getBytes(raw.baseAddress!, bytesPerRow: bytesPerRow, from: region, mipmapLevel: 0)
             }
-            guard let provider = CGDataProvider(data: Data(bytes) as CFData) else { return nil }
+            guard let provider = CGDataProvider(data: Data(readbackBuffer) as CFData) else { return nil }
             let bitmapInfo = CGBitmapInfo(rawValue: CGImageAlphaInfo.premultipliedLast.rawValue)
             return CGImage(
                 width: width, height: height, bitsPerComponent: 8, bitsPerPixel: 32,
@@ -170,9 +223,12 @@
     vertex VertexOut scene_vertex(uint vid [[vertex_id]],
                                   const device float *verts [[buffer(0)]],
                                   constant Transform &t [[buffer(1)]]) {
-        uint base = vid * 6u;
+        // 3 floats per vertex: x, y, and an RGBA8 color packed into a uint that
+        // was bit-cast to float on the CPU. Halves vertex bandwidth vs 4 color
+        // floats.
+        uint base = vid * 3u;
         float2 p = float2(verts[base + 0u], verts[base + 1u]);
-        float4 c = float4(verts[base + 2u], verts[base + 3u], verts[base + 4u], verts[base + 5u]);
+        float4 c = unpack_unorm4x8_to_float(as_type<uint>(verts[base + 2u]));
         VertexOut out;
         out.position = float4(t.ax * p.x + t.bx, t.cy * p.y + t.dy, 0.0, 1.0);
         // Premultiply so blending matches a straight-alpha source-over.

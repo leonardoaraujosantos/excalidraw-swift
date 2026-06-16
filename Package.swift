@@ -46,7 +46,10 @@ let package = Package(
 
         .target(
             name: "ExcalidrawMetal",
-            dependencies: ["ExcalidrawModel", "ExcalidrawMath", "ExcalidrawGeometry", "ExcalidrawRender", "RoughKit"]
+            dependencies: [
+                "ExcalidrawModel", "ExcalidrawMath", "ExcalidrawGeometry",
+                "ExcalidrawRender", "RoughKit", "FreehandKit"
+            ]
         ),
 
         // MARK: Editor logic (pure, testable — no UIKit)

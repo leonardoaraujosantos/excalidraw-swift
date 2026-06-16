@@ -40,7 +40,7 @@ final class MetalSceneRendererTests: XCTestCase {
         XCTAssertTrue(geometry.handledIDs.contains("e"))
         XCTAssertFalse(geometry.handledIDs.contains("t"), "text must fall through to the CG overlay")
         XCTAssertFalse(geometry.isEmpty)
-        XCTAssertEqual(geometry.vertices.count % 18, 0)
+        XCTAssertEqual(geometry.vertices.count % 9, 0) // 3 floats/vertex × 3 vertices
     }
 
     func testGeometrySkipsFramedAndDashedElements() {
@@ -101,8 +101,22 @@ final class MetalSceneRendererTests: XCTestCase {
         }
         let scene = shapesScene()
         let pixels = render(scene, viewport: Viewport(), with: metal)
-        // Top-left corner is empty canvas → white background from the CG pass.
+        // Top-left corner is empty canvas → white background from the GPU clear.
         let (r, g, b) = pixel(pixels, x: 2, y: 2)
+        XCTAssertGreaterThan(r, 230); XCTAssertGreaterThan(g, 230); XCTAssertGreaterThan(b, 230)
+    }
+
+    func testMetalPaintsBackgroundWithNoTessellatedShapes() throws {
+        guard let metal = MetalSceneRenderer() else {
+            throw XCTSkip("No Metal device on this host")
+        }
+        // Only a text element → no GPU geometry. The GPU clear must still paint
+        // the white background (regression for the empty-geometry path).
+        var textBase = BaseProperties(id: "t"); textBase.x = 10; textBase.y = 10
+        textBase.width = 80; textBase.height = 24; textBase.strokeColor = "#000000"
+        let scene = Scene(elements: [ExcalidrawElement(base: textBase, kind: .text(TextProperties(text: "hi")))])
+        let pixels = render(scene, viewport: Viewport(), with: metal)
+        let (r, g, b) = pixel(pixels, x: 180, y: 150) // a corner away from the text
         XCTAssertGreaterThan(r, 230); XCTAssertGreaterThan(g, 230); XCTAssertGreaterThan(b, 230)
     }
 

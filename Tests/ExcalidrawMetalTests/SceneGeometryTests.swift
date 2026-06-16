@@ -1,3 +1,4 @@
+import ExcalidrawGeometry
 import ExcalidrawMath
 import ExcalidrawModel
 import ExcalidrawRender
@@ -15,6 +16,23 @@ final class SceneGeometryTests: XCTestCase {
 
     private func geometry(_ elements: [ExcalidrawElement], theme: Theme = .light) -> SceneGeometry {
         SceneGeometry(scene: Scene(elements: elements), theme: theme)
+    }
+
+    func testViewportCullingSkipsOffscreenElements() {
+        let onScreen = base("on", 10, 10, 80, 60)
+        let offScreen = base("off", 5000, 5000, 80, 60)
+        let scene = Scene(elements: [
+            ExcalidrawElement(base: onScreen, kind: .rectangle),
+            ExcalidrawElement(base: offScreen, kind: .rectangle)
+        ])
+        // Visible region only covers the top-left; the far element is culled.
+        let region = BoundingBox(minX: 0, minY: 0, maxX: 400, maxY: 300)
+        let g = SceneGeometry(scene: scene, theme: .light, visibleRegion: region)
+        XCTAssertTrue(g.handledIDs.contains("on"))
+        XCTAssertFalse(g.handledIDs.contains("off"), "off-screen element must be culled")
+        // Without a region, both are tessellated.
+        let all = SceneGeometry(scene: scene, theme: .light)
+        XCTAssertTrue(all.handledIDs.contains("off"))
     }
 
     func testSolidFillEmitsTriangles() {
@@ -66,7 +84,7 @@ final class SceneGeometryTests: XCTestCase {
         rect.angle = .pi / 4
         let rotated = geometry([ExcalidrawElement(base: rect, kind: .rectangle)])
         XCTAssertEqual(upright.vertices.count, rotated.vertices.count)
-        XCTAssertNotEqual(upright.vertices, rotated.vertices, "rotation must change vertex positions")
+        XCTAssertNotEqual(bits(upright.vertices), bits(rotated.vertices), "rotation must change vertex positions")
     }
 
     func testElementTransformRotatesAboutCentre() {
@@ -81,8 +99,12 @@ final class SceneGeometryTests: XCTestCase {
         var rect = base("r", 0, 0, 100, 60); rect.backgroundColor = "#a5d8ff"; rect.fillStyle = .solid
         rect.opacity = 50
         let g = geometry([ExcalidrawElement(base: rect, kind: .rectangle)])
-        // Alpha is the 6th float of each vertex; with 50% opacity it must be ~0.5.
-        let alphas = stride(from: 5, to: g.vertices.count, by: 6).map { g.vertices[$0] }
+        // Color is the 3rd float of each vertex: an RGBA8 value bit-cast into a
+        // float. The alpha byte (top 8 bits) must reflect the 50% opacity.
+        let alphas = stride(from: 2, to: g.vertices.count, by: 3).map { i -> Double in
+            let packed = g.vertices[i].bitPattern
+            return Double((packed >> 24) & 0xFF) / 255
+        }
         XCTAssertFalse(alphas.isEmpty)
         XCTAssertEqual(alphas.max() ?? 1, 0.5, accuracy: 0.02)
     }
@@ -91,7 +113,17 @@ final class SceneGeometryTests: XCTestCase {
         var rect = base("r", 0, 0, 100, 60); rect.backgroundColor = "#a5d8ff"; rect.fillStyle = .solid
         let light = geometry([ExcalidrawElement(base: rect, kind: .rectangle)], theme: .light)
         let dark = geometry([ExcalidrawElement(base: rect, kind: .rectangle)], theme: .dark)
-        XCTAssertNotEqual(light.vertices, dark.vertices)
+        XCTAssertNotEqual(bits(light.vertices), bits(dark.vertices))
+    }
+
+    func testFreedrawIsTessellatedOnGPU() {
+        let pts = (0 ..< 30).map { Point(Double($0) * 3, Double(($0 * 7) % 40)) }
+        let pressures = [Double](repeating: 0.5, count: pts.count)
+        let free = FreedrawProperties(points: pts, pressures: pressures, simulatePressure: false)
+        var b = base("f", 0, 0, 90, 40); b.strokeColor = "#1e1e1e"
+        let g = geometry([ExcalidrawElement(base: b, kind: .freedraw(free))])
+        XCTAssertGreaterThan(g.triangleCount, 0, "freedraw outline must tessellate to triangles")
+        XCTAssertTrue(g.handledIDs.contains("f"), "freedraw is now GPU-handled, not in the CG overlay")
     }
 
     func testLinePolygonIsTessellated() {
@@ -108,18 +140,26 @@ final class SceneGeometryTests: XCTestCase {
         let first = SceneGeometry(scene: scene, theme: .light, geometryCache: cache)
         XCTAssertEqual(cache.count, 1)
         let cached = SceneGeometry(scene: scene, theme: .light, geometryCache: cache)
-        XCTAssertEqual(first.vertices, cached.vertices, "unchanged element must hit the cache identically")
+        // Compare by bit pattern: packed colors are bit-cast floats that may be
+        // NaN, and NaN != NaN would defeat plain Float-array equality.
+        XCTAssertEqual(bits(first.vertices), bits(cached.vertices), "unchanged element must hit the cache identically")
 
         // A theme change must miss the cache and re-tessellate with new colors.
         let dark = SceneGeometry(scene: scene, theme: .dark, geometryCache: cache)
         XCTAssertEqual(first.vertices.count, dark.vertices.count)
-        XCTAssertNotEqual(first.vertices, dark.vertices)
+        XCTAssertNotEqual(bits(first.vertices), bits(dark.vertices))
 
         // Moving the element invalidates its entry (geometry differs).
         var moved = rect; moved.x += 50
         let movedScene = Scene(elements: [ExcalidrawElement(base: moved, kind: .rectangle)])
         let movedGeo = SceneGeometry(scene: movedScene, theme: .light, geometryCache: cache)
-        XCTAssertNotEqual(first.vertices, movedGeo.vertices)
+        XCTAssertNotEqual(bits(first.vertices), bits(movedGeo.vertices))
+    }
+
+    /// Bit patterns of the vertex floats — NaN-safe for equality (packed colors
+    /// are bit-cast into floats and can be NaN).
+    private func bits(_ vertices: [Float]) -> [UInt32] {
+        vertices.map(\.bitPattern)
     }
 
     /// Regression: emitting vertices must stay amortized O(1) per triangle. A

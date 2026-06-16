@@ -1,12 +1,14 @@
 import CoreGraphics
 import ExcalidrawGeometry
+import ExcalidrawMath
 import ExcalidrawModel
 import ExcalidrawRender
 import Foundation
+import Metal
 
 /// A Metal-backed `SceneRendering`. Rough shapes (rectangle, diamond, ellipse,
 /// line, arrow) are tessellated and rasterized on the GPU with 4× multisampling;
-/// everything else — background, grid, text, images, frames, freedraw,
+/// everything else — background, grid, text, images, frames,
 /// embeddables, dashed strokes and frame-clipped children — is drawn by a
 /// shared Core Graphics `SceneRenderer` in an overlay pass.
 ///
@@ -44,11 +46,19 @@ public final class MetalSceneRenderer: SceneRendering {
     ) {
         let geometry = SceneGeometry(
             scene: scene, theme: theme, skipping: skipping,
+            visibleRegion: Self.visibleRegion(viewport: viewport, size: size),
             shapeCache: shapeCache, geometryCache: geometryCache
         )
 
-        // 1. Background + grid (skip every element so only the backdrop paints).
-        if fillBackground {
+        // The grid (rare, debug aid) still needs Core Graphics. When it's on, fall
+        // back to the CG background+grid pass and clear the GPU layer transparent;
+        // otherwise the GPU paints the background as its clear color (one fewer
+        // CG pass), and still paints it when there are no shapes.
+        let gridOn = scene.appState.gridModeEnabled == true
+        let gpuBackground = fillBackground && !gridOn
+
+        // 1. Background + grid via CG only when the grid is enabled.
+        if fillBackground, gridOn {
             let allIDs = Set(scene.visibleElements.map(\.id))
             cgRenderer.render(
                 scene, in: ctx, viewport: viewport, size: size, theme: theme,
@@ -56,8 +66,10 @@ public final class MetalSceneRenderer: SceneRendering {
             )
         }
 
-        // 2. GPU shape image, composited upright into the y-down context.
-        if !geometry.isEmpty, let image = gpuImage(geometry, viewport: viewport, size: size, ctx: ctx) {
+        // 2. GPU shape image (over the background clear when we own it),
+        //    composited upright into the y-down context.
+        let clearColor = gpuBackground ? Self.backgroundClear(scene, theme: theme) : Self.transparentClear
+        if let image = gpuImage(geometry, viewport: viewport, size: size, ctx: ctx, clearColor: clearColor) {
             ctx.saveGState()
             ctx.translateBy(x: 0, y: size.height)
             ctx.scaleBy(x: 1, y: -1)
@@ -65,7 +77,7 @@ public final class MetalSceneRenderer: SceneRendering {
             ctx.restoreGState()
         }
 
-        // 3. Remaining elements (text/images/frames/freedraw/etc.) over the top.
+        // 3. Remaining elements (text/images/frames/embeddables/etc.) over the top.
         cgRenderer.render(
             scene, in: ctx, viewport: viewport, size: size, theme: theme,
             clip: clip, skipping: skipping.union(geometry.handledIDs), fillBackground: false
@@ -93,21 +105,29 @@ public final class MetalSceneRenderer: SceneRendering {
         var geometry: SceneGeometry?
         timings.geometryMs = ms {
             geometry = SceneGeometry(
-                scene: scene, theme: theme, shapeCache: shapeCache, geometryCache: geometryCache
+                scene: scene, theme: theme,
+                visibleRegion: Self.visibleRegion(viewport: viewport, size: size),
+                shapeCache: shapeCache, geometryCache: geometryCache
             )
         }
         guard let geometry else { return timings }
 
-        let allIDs = Set(scene.visibleElements.map(\.id))
-        timings.backgroundMs = ms {
-            cgRenderer.render(
-                scene, in: ctx, viewport: viewport, size: size, theme: theme,
-                clip: nil, skipping: allIDs, fillBackground: true
-            )
+        // The background folds into the GPU clear (gridless path), so the CG
+        // background phase is effectively zero here.
+        let gridOn = scene.appState.gridModeEnabled == true
+        if gridOn {
+            let allIDs = Set(scene.visibleElements.map(\.id))
+            timings.backgroundMs = ms {
+                cgRenderer.render(
+                    scene, in: ctx, viewport: viewport, size: size, theme: theme,
+                    clip: nil, skipping: allIDs, fillBackground: true
+                )
+            }
         }
+        let clearColor = gridOn ? Self.transparentClear : Self.backgroundClear(scene, theme: theme)
         var image: CGImage?
         timings.gpuMs = ms {
-            if !geometry.isEmpty { image = gpuImage(geometry, viewport: viewport, size: size, ctx: ctx) }
+            image = gpuImage(geometry, viewport: viewport, size: size, ctx: ctx, clearColor: clearColor)
         }
         if let image {
             ctx.saveGState()
@@ -126,7 +146,8 @@ public final class MetalSceneRenderer: SceneRendering {
     }
 
     private func gpuImage(
-        _ geometry: SceneGeometry, viewport: Viewport, size: CGSize, ctx: CGContext
+        _ geometry: SceneGeometry, viewport: Viewport, size: CGSize,
+        ctx: CGContext, clearColor: MTLClearColor
     ) -> CGImage? {
         // Match the GPU texture to the context's backing resolution so shapes
         // stay crisp at any zoom / display scale.
@@ -134,8 +155,39 @@ public final class MetalSceneRenderer: SceneRendering {
         let pixelHeight = ctx.height > 0 ? ctx.height : Int(size.height.rounded())
         let transform = Self.clipTransform(viewport: viewport, size: size)
         return gpu.image(
-            vertices: geometry.vertices, transform: transform,
+            vertices: geometry.vertices, transform: transform, clearColor: clearColor,
             pixelWidth: pixelWidth, pixelHeight: pixelHeight
+        )
+    }
+
+    static let transparentClear = MTLClearColor(red: 0, green: 0, blue: 0, alpha: 0)
+
+    /// The themed background color as a Metal clear color (mirrors
+    /// `SceneRenderer`'s background fill).
+    static func backgroundClear(_ scene: Scene, theme: Theme) -> MTLClearColor {
+        let cg: CGColor = if let userBackground = scene.appState.viewBackgroundColor,
+                             let parsed = ColorParser.cgColor(userBackground) {
+            ThemeFilter.apply(parsed, theme: theme)
+        } else {
+            ColorParser.cgColor(theme == .dark ? "#121212" : "#ffffff")
+                ?? CGColor(red: 1, green: 1, blue: 1, alpha: 1)
+        }
+        guard let c = cg.components, c.count >= 3 else {
+            return MTLClearColor(red: 1, green: 1, blue: 1, alpha: 1)
+        }
+        return MTLClearColor(
+            red: Double(c[0]), green: Double(c[1]), blue: Double(c[2]),
+            alpha: Double(c.count >= 4 ? c[3] : 1)
+        )
+    }
+
+    /// The visible scene rectangle for the current viewport, used to cull the
+    /// GPU geometry to what's on screen.
+    static func visibleRegion(viewport: Viewport, size: CGSize) -> BoundingBox {
+        let topLeft = viewport.viewToScene(Point(0, 0))
+        let bottomRight = viewport.viewToScene(Point(size.width, size.height))
+        return BoundingBox(
+            minX: topLeft.x, minY: topLeft.y, maxX: bottomRight.x, maxY: bottomRight.y
         )
     }
 

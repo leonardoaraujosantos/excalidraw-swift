@@ -113,9 +113,9 @@ public enum RendererBenchmark {
         return Double(DispatchTime.now().uptimeNanoseconds - start) / 1e6 / Double(iterations)
     }
 
-    /// Grid of mixed elements. `shapesOnly` keeps only the GPU-tessellated kinds
-    /// (the Metal best case); otherwise every fifth element is a freedraw stroke,
-    /// which the Metal path routes back to Core Graphics.
+    /// Grid of mixed elements. `shapesOnly` keeps only the rough shape kinds;
+    /// otherwise every fifth element is a freedraw stroke. Both are now
+    /// GPU-tessellated, so `mixed` mainly adds freehand-outline triangles.
     static func syntheticScene(count: Int, shapesOnly: Bool) -> Scene {
         let perRow = Int(Double(count).squareRoot().rounded(.up))
         let cell = 90.0
