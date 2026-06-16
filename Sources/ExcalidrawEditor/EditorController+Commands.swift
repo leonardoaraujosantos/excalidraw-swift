@@ -7,6 +7,20 @@ import Foundation
 /// Split out of `EditorController` to keep that type focused on the pointer
 /// state machine.
 public extension EditorController {
+    // MARK: Image crop
+
+    /// Set (or clear, with `nil`) the crop rectangle on an image element, as one
+    /// undo step. The crop is in natural-image pixel coordinates.
+    func setCrop(id: String, _ crop: ImageCrop?) {
+        guard let element = scene.element(id: id), case var .image(props) = element.kind else { return }
+        store.transaction { scene in
+            var updated = element
+            props.crop = crop
+            updated.kind = .image(props)
+            scene.replace(updated)
+        }
+    }
+
     // MARK: Copy / paste
 
     /// Serialize the selection as an `.excalidraw` payload for the pasteboard.

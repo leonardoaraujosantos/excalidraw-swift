@@ -281,7 +281,16 @@ public final class SceneRenderer {
         _ image: ImageProperties, base: BaseProperties, in ctx: CGContext, files: [String: BinaryFileData]
     ) {
         guard let fileId = image.fileId, let file = files[fileId],
-              let cgImage = imageDecoder.image(fileId: fileId, dataURL: file.dataURL) else { return }
+              let fullImage = imageDecoder.image(fileId: fileId, dataURL: file.dataURL) else { return }
+        // Honor a crop: draw only the cropped sub-region of the source, scaled
+        // to fill the element rect. Crop is in natural-pixel, top-left coords.
+        let cgImage: CGImage
+        if let crop = image.crop {
+            let cropRect = CGRect(x: crop.x, y: crop.y, width: crop.width, height: crop.height)
+            cgImage = fullImage.cropping(to: cropRect) ?? fullImage
+        } else {
+            cgImage = fullImage
+        }
         // CGContext.draw flips images in a y-down context; flip back so it is upright.
         let rect = CGRect(x: 0, y: 0, width: base.width, height: base.height)
         ctx.saveGState()
