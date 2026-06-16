@@ -21,7 +21,7 @@ public struct LiveBenchmarkView: View {
 
     @State private var backend: Backend = .cpu
     @State private var count = 500
-    @State private var scene: ExcalidrawModel.Scene = RendererBenchmark.syntheticScene(count: 500, shapesOnly: false)
+    @State private var scene: ExcalidrawModel.Scene = RendererBenchmark.syntheticScene(count: 500, kind: .mixed)
     @State private var cgRenderer = SceneRenderer()
     @State private var metalRenderer = MetalSceneRenderer()
     @State private var meter = FrameMeter()
@@ -41,7 +41,7 @@ public struct LiveBenchmarkView: View {
         }
         .padding(12)
         .onChange(of: count) { _, new in
-            scene = RendererBenchmark.syntheticScene(count: new, shapesOnly: false)
+            scene = RendererBenchmark.syntheticScene(count: new, kind: .mixed)
             meter.reset()
         }
         .onChange(of: backend) { _, _ in meter.reset() }

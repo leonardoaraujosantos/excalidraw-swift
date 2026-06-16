@@ -4,6 +4,8 @@ import ExcalidrawMetal
 import ExcalidrawModel
 import ExcalidrawRender
 import Foundation
+import ImageIO
+import UniformTypeIdentifiers
 
 /// Headless CPU-vs-GPU rendering benchmark, surfaced in-app via
 /// `RendererBenchmarkView` so the numbers can be read on the device screen
@@ -22,6 +24,9 @@ public enum RendererBenchmark {
         /// Direct-to-drawable cost: the GPU frame with no read-back / CG
         /// compositing (what an on-screen present pays, minus the async present).
         public let metalDirectMs: Double?
+        /// Editor hybrid cost: the direct GPU frame plus the Core Graphics
+        /// text/selection overlay (what the live editor canvas actually pays).
+        public let hybridMs: Double?
         public let geometryMs: Double?
         public let gpuMs: Double?
         public let overlayMs: Double?
@@ -37,25 +42,37 @@ public enum RendererBenchmark {
             guard let metalDirectMs, metalDirectMs > 0 else { return nil }
             return cpuMs / metalDirectMs
         }
+
+        /// CPU ÷ editor hybrid.
+        public var hybridRatio: Double? {
+            guard let hybridMs, hybridMs > 0 else { return nil }
+            return cpuMs / hybridMs
+        }
+    }
+
+    /// Which synthetic scene to build: rough `shapes` only, `mixed` (adds
+    /// freedraw), or `all` component types (adds dashed, line, image and text).
+    public enum SceneKind: String, Sendable {
+        case shapes, mixed, all
     }
 
     public struct Config: Sendable {
         public let label: String
-        public let shapesOnly: Bool
+        public let kind: SceneKind
         public let count: Int
 
-        public init(label: String, shapesOnly: Bool, count: Int) {
+        public init(label: String, kind: SceneKind, count: Int) {
             self.label = label
-            self.shapesOnly = shapesOnly
+            self.kind = kind
             self.count = count
         }
     }
 
     public static let defaultConfigs: [Config] = [
-        Config(label: "shapes", shapesOnly: true, count: 500),
-        Config(label: "shapes", shapesOnly: true, count: 1500),
-        Config(label: "mixed", shapesOnly: false, count: 500),
-        Config(label: "mixed", shapesOnly: false, count: 1500)
+        Config(label: "shapes", kind: .shapes, count: 1500),
+        Config(label: "mixed", kind: .mixed, count: 1500),
+        Config(label: "all", kind: .all, count: 500),
+        Config(label: "all", kind: .all, count: 1500)
     ]
 
     /// Whether the GPU backend can be measured on this device.
@@ -83,7 +100,8 @@ public enum RendererBenchmark {
         }
 
         return configs.map { config in
-            let scene = syntheticScene(count: config.count, shapesOnly: config.shapesOnly)
+            let scene = syntheticScene(count: config.count, kind: config.kind)
+            let gpuHandled = Set(scene.visibleElements.filter { SceneGeometry.isGPUHandled($0) }.map(\.id))
 
             let cgCtx = context()
             cg.render(scene, in: cgCtx, viewport: viewport, size: size) // warm
@@ -93,6 +111,7 @@ public enum RendererBenchmark {
 
             var metalMs: Double?
             var metalDirectMs: Double?
+            var hybridMs: Double?
             var geometryMs: Double?
             var gpuMs: Double?
             var overlayMs: Double?
@@ -113,6 +132,18 @@ public enum RendererBenchmark {
                         pixelWidth: width, pixelHeight: height
                     )
                 }
+                // Editor hybrid: direct GPU frame + the CG text/selection overlay.
+                let overlayCtx = context()
+                hybridMs = milliseconds(iterations) {
+                    metal.renderDirectFrame(
+                        scene: scene, viewport: viewport, size: size, theme: .light,
+                        pixelWidth: width, pixelHeight: height
+                    )
+                    cg.render(
+                        scene, in: overlayCtx, viewport: viewport, size: size,
+                        theme: .light, skipping: gpuHandled, fillBackground: false
+                    )
+                }
                 let phases = metal.renderTimed(scene, in: context(), viewport: viewport, size: size)
                 geometryMs = phases.geometryMs
                 gpuMs = phases.gpuMs
@@ -121,7 +152,7 @@ public enum RendererBenchmark {
 
             return Row(
                 label: config.label, count: config.count, cpuMs: cpuMs,
-                metalMs: metalMs, metalDirectMs: metalDirectMs,
+                metalMs: metalMs, metalDirectMs: metalDirectMs, hybridMs: hybridMs,
                 geometryMs: geometryMs, gpuMs: gpuMs, overlayMs: overlayMs
             )
         }
@@ -135,39 +166,75 @@ public enum RendererBenchmark {
         return Double(DispatchTime.now().uptimeNanoseconds - start) / 1e6 / Double(iterations)
     }
 
-    /// Grid of mixed elements. `shapesOnly` keeps only the rough shape kinds;
-    /// otherwise every fifth element is a freedraw stroke. Both are now
-    /// GPU-tessellated, so `mixed` mainly adds freehand-outline triangles.
-    static func syntheticScene(count: Int, shapesOnly: Bool) -> Scene {
+    /// A grid of synthetic elements. `.shapes` is rough shapes only; `.mixed`
+    /// adds freedraw; `.all` exercises every component type (dashed rectangle,
+    /// line, image and text too).
+    static func syntheticScene(count: Int, kind: SceneKind) -> Scene {
         let perRow = Int(Double(count).squareRoot().rounded(.up))
         let cell = 90.0
-        let kinds = shapesOnly ? 4 : 5
+        let buckets = switch kind {
+        case .shapes: 4
+        case .mixed: 5
+        case .all: 8
+        }
         var elements: [ExcalidrawElement] = []
         for i in 0 ..< count {
             var b = BaseProperties(id: "e\(i)")
             b.x = Double(i % perRow) * cell + 10
             b.y = Double(i / perRow) * cell + 10
             b.width = 70; b.height = 60; b.seed = i + 1; b.strokeColor = "#1e1e1e"
-            switch i % kinds {
-            case 0:
-                b.backgroundColor = "#ffc9c9"; b.fillStyle = .hachure
-                elements.append(ExcalidrawElement(base: b, kind: .rectangle))
-            case 1:
-                b.backgroundColor = "#a5d8ff"; b.fillStyle = .crossHatch
-                elements.append(ExcalidrawElement(base: b, kind: .ellipse))
-            case 2:
-                b.backgroundColor = "#b2f2bb"; b.fillStyle = .solid
-                elements.append(ExcalidrawElement(base: b, kind: .diamond))
-            case 3:
-                let pts = [Point(0, 0), Point(70, 20), Point(20, 60), Point(70, 60)]
-                elements.append(ExcalidrawElement(
-                    base: b, kind: .arrow(ArrowProperties(points: pts, endArrowhead: .arrow))
-                ))
-            default:
-                let pts = (0 ..< 200).map { j in Point(Double(j % 70), Double((j * 7) % 60)) }
-                elements.append(ExcalidrawElement(base: b, kind: .freedraw(FreedrawProperties(points: pts))))
-            }
+            elements.append(element(index: i, bucket: i % buckets, base: b))
         }
-        return Scene(elements: elements)
+        let files = ["bench-img": BinaryFileData(
+            mimeType: "image/png", id: "bench-img", dataURL: solidImageDataURL, created: 0
+        )]
+        return Scene(elements: elements, files: kind == .all ? files : [:])
     }
+
+    private static func element(index _: Int, bucket: Int, base b: BaseProperties) -> ExcalidrawElement {
+        var b = b
+        switch bucket {
+        case 0:
+            b.backgroundColor = "#ffc9c9"; b.fillStyle = .hachure
+            return ExcalidrawElement(base: b, kind: .rectangle)
+        case 1:
+            b.backgroundColor = "#a5d8ff"; b.fillStyle = .crossHatch
+            return ExcalidrawElement(base: b, kind: .ellipse)
+        case 2:
+            b.backgroundColor = "#b2f2bb"; b.fillStyle = .solid
+            return ExcalidrawElement(base: b, kind: .diamond)
+        case 3:
+            let pts = [Point(0, 0), Point(70, 20), Point(20, 60), Point(70, 60)]
+            return ExcalidrawElement(base: b, kind: .arrow(ArrowProperties(points: pts, endArrowhead: .arrow)))
+        case 4:
+            let pts = (0 ..< 60).map { j in Point(Double(j % 70), Double((j * 11) % 60)) }
+            return ExcalidrawElement(base: b, kind: .freedraw(FreedrawProperties(points: pts)))
+        case 5:
+            b.strokeStyle = .dashed
+            return ExcalidrawElement(base: b, kind: .rectangle)
+        case 6:
+            return ExcalidrawElement(base: b, kind: .image(ImageProperties(fileId: "bench-img")))
+        default:
+            return ExcalidrawElement(base: b, kind: .text(TextProperties(fontSize: 16, text: "Label")))
+        }
+    }
+
+    /// A tiny solid-color PNG `data:` URL for the benchmark's image elements.
+    static let solidImageDataURL: String = {
+        let side = 16
+        guard let ctx = CGContext(
+            data: nil, width: side, height: side, bitsPerComponent: 8, bytesPerRow: side * 4,
+            space: CGColorSpaceCreateDeviceRGB(), bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+        ) else { return "" }
+        ctx.setFillColor(CGColor(red: 0.4, green: 0.7, blue: 0.95, alpha: 1))
+        ctx.fill(CGRect(x: 0, y: 0, width: side, height: side))
+        guard let image = ctx.makeImage() else { return "" }
+        let data = NSMutableData()
+        guard let dest = CGImageDestinationCreateWithData(data, UTType.png.identifier as CFString, 1, nil) else {
+            return ""
+        }
+        CGImageDestinationAddImage(dest, image, nil)
+        CGImageDestinationFinalize(dest)
+        return "data:image/png;base64," + (data as Data).base64EncodedString()
+    }()
 }

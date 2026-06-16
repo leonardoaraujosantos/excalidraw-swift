@@ -5,36 +5,48 @@ import XCTest
 
 final class RendererBenchmarkTests: XCTestCase {
     func testSyntheticSceneSizesAndKinds() {
-        let shapes = RendererBenchmark.syntheticScene(count: 40, shapesOnly: true)
+        let shapes = RendererBenchmark.syntheticScene(count: 40, kind: .shapes)
         XCTAssertEqual(shapes.visibleElements.count, 40)
-        // shapesOnly cycles through 4 GPU-tessellated kinds — no freedraw.
         XCTAssertFalse(shapes.visibleElements.contains { $0.type == "freedraw" })
 
-        let mixed = RendererBenchmark.syntheticScene(count: 40, shapesOnly: false)
+        let mixed = RendererBenchmark.syntheticScene(count: 40, kind: .mixed)
         XCTAssertTrue(mixed.visibleElements.contains { $0.type == "freedraw" })
     }
 
+    func testAllTypesSceneCoversEveryComponentKind() {
+        let scene = RendererBenchmark.syntheticScene(count: 64, kind: .all)
+        let types = Set(scene.visibleElements.map(\.type))
+        // Every component type must appear.
+        for type in ["rectangle", "ellipse", "diamond", "arrow", "freedraw", "image", "text"] {
+            XCTAssertTrue(types.contains(type), "missing \(type)")
+        }
+        // It includes a dashed rectangle and an image file.
+        XCTAssertTrue(scene.visibleElements.contains { $0.base.strokeStyle == .dashed })
+        XCTAssertFalse(scene.files.isEmpty)
+    }
+
     func testRunProducesRowsWithPositiveCPUTimes() {
-        let configs = [RendererBenchmark.Config(label: "shapes", shapesOnly: true, count: 60)]
+        let configs = [RendererBenchmark.Config(label: "all", kind: .all, count: 64)]
         let rows = RendererBenchmark.run(width: 400, height: 300, iterations: 1, configs: configs)
         XCTAssertEqual(rows.count, 1)
         let row = try? XCTUnwrap(rows.first)
-        XCTAssertEqual(row?.count, 60)
+        XCTAssertEqual(row?.count, 64)
         XCTAssertGreaterThan(row?.cpuMs ?? 0, 0)
     }
 
-    func testRunPopulatesMetalPhasesWhenAvailable() throws {
+    func testRunPopulatesMetalAndHybridWhenAvailable() throws {
         try XCTSkipUnless(RendererBenchmark.metalAvailable, "No Metal device on this host")
-        let configs = [RendererBenchmark.Config(label: "shapes", shapesOnly: true, count: 60)]
+        let configs = [RendererBenchmark.Config(label: "all", kind: .all, count: 64)]
         let row = try XCTUnwrap(
             RendererBenchmark.run(width: 400, height: 300, iterations: 1, configs: configs).first
         )
         XCTAssertNotNil(row.metalMs)
         XCTAssertNotNil(row.metalDirectMs)
+        XCTAssertNotNil(row.hybridMs)
         XCTAssertNotNil(row.gpuMs)
-        // Both ratios are defined once the Metal times exist.
         XCTAssertNotNil(row.ratio)
         XCTAssertNotNil(row.directRatio)
+        XCTAssertNotNil(row.hybridRatio)
     }
 
     func testMetalAvailabilityMatchesContext() {

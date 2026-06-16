@@ -69,7 +69,8 @@ public struct RendererBenchmarkView: View {
 
     private var header: some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text("CPU (Core Graphics) vs Metal (GPU), 1200×800, ms per frame")
+            Text("ms/frame at 1200×800. Metal = read-back, Direct = GPU-only, "
+                + "Hybrid = editor (GPU + CG text). “all” = every component type.")
                 .font(.footnote).foregroundStyle(.secondary)
             if !RendererBenchmark.metalAvailable {
                 Label("Metal unavailable on this device — showing CPU only", systemImage: "exclamationmark.triangle")
@@ -91,15 +92,15 @@ public struct RendererBenchmarkView: View {
 
     private var resultsTable: some View {
         ScrollView {
-            Grid(alignment: .trailing, horizontalSpacing: 12, verticalSpacing: 8) {
+            Grid(alignment: .trailing, horizontalSpacing: 10, verticalSpacing: 8) {
                 GridRow {
                     cell("Scene", bold: true, align: .leading)
                     cell("N", bold: true)
                     cell("CPU", bold: true)
                     cell("Metal", bold: true)
                     cell("Direct", bold: true)
-                    cell("CPU/Metal", bold: true)
-                    cell("CPU/Direct", bold: true)
+                    cell("Hybrid", bold: true)
+                    cell("vs CPU", bold: true)
                 }
                 Divider().gridCellColumns(7)
                 ForEach(rows) { row in
@@ -109,8 +110,8 @@ public struct RendererBenchmarkView: View {
                         cell(ms(row.cpuMs))
                         cell(row.metalMs.map(ms) ?? "—")
                         cell(row.metalDirectMs.map(ms) ?? "—")
-                        ratioCell(row.ratio)
-                        ratioCell(row.directRatio)
+                        cell(row.hybridMs.map(ms) ?? "—")
+                        ratioCell(row.hybridRatio)
                     }
                     .accessibilityIdentifier("benchmark-row-\(row.label)-\(row.count)")
                 }
