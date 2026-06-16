@@ -37,8 +37,9 @@ public extension EditorController {
             }
         case .line:
             setPolyline(recognition.vertices, polygon: false, on: &element)
-        case .triangle:
-            // A closed 3-point polygon (start repeated to close it).
+        default:
+            // Triangle/pentagon/hexagon/star/heart/cloud/speech-bubble: a closed
+            // polygon (first vertex repeated to close the loop).
             setPolyline(recognition.vertices + [recognition.vertices.first ?? .zero], polygon: true, on: &element)
         }
     }

@@ -22,6 +22,49 @@ final class ShapeRecognizerTests: XCTestCase {
         return points
     }
 
+    /// Draw a stroke that traces a generated shape's vertices (closed).
+    private func trace(_ vertices: [Point], perEdge: Int = 10, jitter: Double = 0) -> [Point] {
+        stroke(vertices, closed: true, perEdge: perEdge, jitter: jitter)
+    }
+
+    private let box = BoundingBox(minX: 0, minY: 0, maxX: 200, maxY: 200)
+
+    func testRecognizesPentagon() {
+        let pts = trace(ShapeGenerator.regularPolygon(sides: 5, in: box))
+        XCTAssertEqual(ShapeRecognizer.recognize(pts)?.shape, .pentagon)
+    }
+
+    func testRecognizesHexagon() {
+        let pts = trace(ShapeGenerator.regularPolygon(sides: 6, in: box))
+        XCTAssertEqual(ShapeRecognizer.recognize(pts)?.shape, .hexagon)
+    }
+
+    func testRecognizesStar() {
+        let pts = trace(ShapeGenerator.star(points: 5, in: box))
+        XCTAssertEqual(ShapeRecognizer.recognize(pts)?.shape, .star)
+    }
+
+    func testRecognizesHeart() {
+        let pts = trace(ShapeGenerator.heart(in: box), perEdge: 4)
+        XCTAssertEqual(ShapeRecognizer.recognize(pts)?.shape, .heart)
+    }
+
+    func testRecognizesCloud() {
+        let pts = trace(ShapeGenerator.cloud(in: box), perEdge: 3)
+        XCTAssertEqual(ShapeRecognizer.recognize(pts)?.shape, .cloud)
+    }
+
+    func testRecognizesSpeechBubble() {
+        let pts = trace(ShapeGenerator.speechBubble(in: box), perEdge: 4)
+        XCTAssertEqual(ShapeRecognizer.recognize(pts)?.shape, .speechBubble)
+    }
+
+    func testPolygonOutputIsRegenerated() {
+        // The snapped pentagon uses clean generated vertices, not the rough ones.
+        let result = ShapeRecognizer.recognize(trace(ShapeGenerator.regularPolygon(sides: 5, in: box)))
+        XCTAssertEqual(result?.vertices.count, 5)
+    }
+
     func testRecognizesSquare() {
         let pts = stroke([Point(0, 0), Point(100, 0), Point(100, 100), Point(0, 100)], closed: true)
         XCTAssertEqual(ShapeRecognizer.recognize(pts)?.shape, .rectangle)
