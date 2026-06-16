@@ -103,6 +103,10 @@ public enum Transform {
         case var .line(p): p.points = scalePoints(p.points); e.kind = .line(p)
         case var .arrow(p): p.points = scalePoints(p.points); e.kind = .arrow(p)
         case var .freedraw(p): p.points = scalePoints(p.points); e.kind = .freedraw(p)
+        case var .text(p):
+            // Text grows/shrinks with the box: scale the font by the height factor.
+            p.fontSize *= abs(sy)
+            e.kind = .text(p)
         default: break
         }
         return e

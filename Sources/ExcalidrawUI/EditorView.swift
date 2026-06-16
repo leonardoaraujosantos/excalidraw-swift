@@ -21,8 +21,8 @@ public struct EditorView: View {
     private let tools: [(Tool, String)] = [
         (.selection, "cursorarrow"), (.rectangle, "rectangle"), (.diamond, "diamond"),
         (.ellipse, "circle"), (.arrow, "arrow.up.right"), (.line, "line.diagonal"),
-        (.freedraw, "scribble"), (.text, "textformat"), (.frame, "rectangle.dashed"),
-        (.eraser, "eraser"), (.hand, "hand.draw")
+        (.freedraw, "scribble"), (.text, "textformat"), (.postit, "note.text"),
+        (.frame, "rectangle.dashed"), (.eraser, "eraser"), (.hand, "hand.draw")
     ]
     private let palette = ["#1e1e1e", "#e03131", "#2f9e44", "#1971c2", "#f08c00"]
     private let fills = ["transparent", "#ffc9c9", "#b2f2bb", "#a5d8ff", "#ffec99"]

@@ -36,6 +36,25 @@ public enum TextLayout {
         }
     }
 
+    /// Measure the rendered size of a text block (widest line × total height).
+    public static func measure(_ text: TextProperties) -> CGSize {
+        let font = CTFontCreateWithName(fontName(for: text.fontFamily) as CFString, text.fontSize, nil)
+        let lines = text.text.components(separatedBy: "\n")
+        var maxWidth = 0.0
+        for lineText in lines where !lineText.isEmpty {
+            let attributed = NSAttributedString(
+                string: lineText,
+                attributes: [NSAttributedString.Key(kCTFontAttributeName as String): font]
+            )
+            maxWidth = max(
+                maxWidth,
+                CTLineGetTypographicBounds(CTLineCreateWithAttributedString(attributed), nil, nil, nil)
+            )
+        }
+        let height = Double(max(lines.count, 1)) * text.fontSize * text.lineHeight
+        return CGSize(width: maxWidth, height: height)
+    }
+
     /// Map an Excalidraw font-family id to the closest system font. The
     /// hand-drawn families (Excalifont/Virgil/Nunito/etc.) map to a handwriting
     /// system font for an Excalidraw-like feel; bundling the actual fonts with

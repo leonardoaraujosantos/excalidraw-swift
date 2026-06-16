@@ -64,6 +64,18 @@ final class TransformTests: XCTestCase {
         XCTAssertEqual(scaled.points[1], Point(20, 10))
     }
 
+    func testScaleTextScalesFontSize() {
+        var b = BaseProperties(id: "t"); b.width = 100; b.height = 40
+        let text = TextProperties(fontSize: 20, text: "Hi")
+        let e = Transform.scale(
+            ExcalidrawElement(base: b, kind: .text(text)),
+            from: BoundingBox(minX: 0, minY: 0, maxX: 100, maxY: 40),
+            to: BoundingBox(minX: 0, minY: 0, maxX: 200, maxY: 80) // 2× height
+        )
+        guard case let .text(scaled) = e.kind else { return XCTFail("text") }
+        XCTAssertEqual(scaled.fontSize, 40, accuracy: 1e-9) // font doubled with height
+    }
+
     func testTranslate() {
         var b = BaseProperties(id: "r"); b.x = 5; b.y = 5
         let e = Transform.translate(ExcalidrawElement(base: b, kind: .rectangle), dx: 10, dy: -3)

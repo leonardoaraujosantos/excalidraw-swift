@@ -92,6 +92,12 @@ public final class EditorModel: ObservableObject {
             return
         }
 
+        // The sticky-note tool drops a note and starts editing its label.
+        if activeTool == .postit {
+            if phase == .down { beginStickyNote(at: viewPoint, scenePoint: scenePoint) }
+            return
+        }
+
         let event = PointerEvent(
             scenePoint: scenePoint, phase: phase, type: type,
             pressure: pressure, shift: shift, alt: alt, toggleSelection: toggle
@@ -476,6 +482,11 @@ public final class EditorModel: ObservableObject {
     /// line/arrow, or crop mode for an image.
     public func beginEditMode(at viewPoint: CGPoint) {
         let scenePoint = viewport.viewToScene(Point(viewPoint.x, viewPoint.y))
+        // A note (container with bound text) edits its label.
+        if let hit = controller.boundTextHit(at: scenePoint) {
+            beginEditingBoundText(hit.text, at: viewPoint)
+            return
+        }
         if controller.beginLinearEdit(at: scenePoint) { revision += 1; return }
         guard let hit = controller.imageHit(at: scenePoint),
               let image = ImageDecoder.decode(dataURL: hit.dataURL) else { return }
@@ -515,6 +526,31 @@ public final class EditorModel: ObservableObject {
         let id = controller.createText(at: scenePoint)
         editingTextID = id
         editingText = ""
+        editingTextOrigin = viewPoint
+        revision += 1
+    }
+
+    /// Drop a sticky note centred on the tap and start editing its label.
+    func beginStickyNote(at viewPoint: CGPoint, scenePoint: Point) {
+        let note = controller.createStickyNote(at: scenePoint)
+        editingTextID = note.text
+        editingText = ""
+        editingTextOrigin = viewPoint
+        if !controller.toolLocked {
+            controller.setTool(.selection)
+            activeTool = .selection
+        }
+        revision += 1
+    }
+
+    /// Begin editing an existing bound text label (e.g. on double-tapping a note).
+    func beginEditingBoundText(_ textID: String, at viewPoint: CGPoint) {
+        editingTextID = textID
+        if let element = controller.scene.element(id: textID), case let .text(props) = element.kind {
+            editingText = props.originalText
+        } else {
+            editingText = ""
+        }
         editingTextOrigin = viewPoint
         revision += 1
     }

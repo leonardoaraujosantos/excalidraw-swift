@@ -360,6 +360,30 @@ final class EditorModelTests: XCTestCase {
         XCTAssertFalse(m.recognizeSelectedStroke()) // disabled → no-op
     }
 
+    func testStickyNoteToolCreatesNoteAndEditsText() {
+        let m = EditorModel()
+        m.select(tool: .postit)
+        m.pointer(.down, at: CGPoint(x: 40, y: 40))
+        // A note (container + bound text) is created and its label is being edited.
+        XCTAssertEqual(m.controller.scene.visibleElements.count, 2)
+        XCTAssertNotNil(m.editingTextID)
+        m.editingText = "Todo"
+        m.commitText()
+        let text = m.controller.scene.visibleElements.first { if case .text = $0.kind { return true }; return false }
+        guard case let .text(props) = text?.kind else { return XCTFail("text") }
+        XCTAssertEqual(props.text, "Todo")
+        XCTAssertNotNil(props.containerId)
+    }
+
+    func testDoubleTapNoteEditsItsText() {
+        let m = EditorModel()
+        let note = m.controller.createStickyNote(at: Point(0, 0))
+        m.controller.setText(id: note.text, "hi")
+        m.beginEditMode(at: CGPoint(x: 80, y: 80)) // double-tap centre
+        XCTAssertEqual(m.editingTextID, note.text)
+        XCTAssertEqual(m.editingText, "hi")
+    }
+
     func testAddFlowchartNodeFromModel() {
         let m = EditorModel()
         m.select(tool: .rectangle)

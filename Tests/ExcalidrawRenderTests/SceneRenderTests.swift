@@ -102,6 +102,33 @@ final class SceneRenderTests: XCTestCase {
         XCTAssertEqual(inked, 0, "off-screen element should be culled")
     }
 
+    func testStickyNoteRendersFillAndCenteredText() {
+        var container = base("c", x: 0, y: 0, w: 160, h: 160)
+        container.backgroundColor = "#ffec99"; container.fillStyle = .solid
+        var textBase = base("t", x: 0, y: 80, w: 0, h: 0); textBase.strokeColor = "#1e1e1e"
+        let text = TextProperties(text: "Hi", textAlign: .center, verticalAlign: .middle, containerId: "c")
+        let scene = Scene(elements: [
+            ExcalidrawElement(base: container, kind: .rectangle),
+            ExcalidrawElement(base: textBase, kind: .text(text))
+        ])
+        let (w, h) = (180, 180)
+        let ctx = context(width: w, height: h)
+        SceneRenderer().render(scene, in: ctx, viewport: Viewport(), size: CGSize(width: w, height: h))
+
+        let (px, _) = rgb(ctx, width: w, height: h)
+        /// Dark text pixels should appear near the note centre (≈80,80), not at the origin.
+        func darkNear(_ cx: Int, _ cy: Int) -> Bool {
+            for y in (cy - 15) ... (cy + 15) {
+                for x in (cx - 25) ... (cx + 25) {
+                    let i = (y * w + x) * 4
+                    if px[i] < 120, px[i + 1] < 120, px[i + 2] < 120 { return true }
+                }
+            }
+            return false
+        }
+        XCTAssertTrue(darkNear(80, 80), "note text should render near the centre")
+    }
+
     func testSolidFillProducesFillColoredPixels() {
         var rect = base("r", x: 10, y: 10, w: 100, h: 80)
         rect.backgroundColor = "#ff0000"

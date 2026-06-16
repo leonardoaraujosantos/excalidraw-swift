@@ -96,11 +96,15 @@ public final class SceneRenderer {
             drawGrid(in: ctx, viewport: viewport, size: size)
         }
 
-        // Frame bounds in scene coordinates, for clipping their children.
+        // Frame bounds in scene coordinates, for clipping their children, plus
+        // every element's bounds so bound text can be centered in its container.
         var frameBounds: [String: CGRect] = [:]
-        for element in scene.visibleElements where isFrame(element) {
+        var containerBounds: [String: CGRect] = [:]
+        for element in scene.visibleElements {
             let b = element.base
-            frameBounds[element.id] = CGRect(x: b.x, y: b.y, width: b.width, height: b.height)
+            let rect = CGRect(x: b.x, y: b.y, width: b.width, height: b.height)
+            containerBounds[element.id] = rect
+            if isFrame(element) { frameBounds[element.id] = rect }
         }
 
         // Cull off-screen elements. Frame *bounds* are kept above regardless, so
@@ -118,7 +122,13 @@ public final class SceneRenderer {
             )
         }
         for element in Culling.visible(scene.visibleElements, in: visibleRegion, margin: cullingMargin) {
-            drawElement(element, in: ctx, files: scene.files, frameBounds: frameBounds)
+            drawElement(
+                element,
+                in: ctx,
+                files: scene.files,
+                frameBounds: frameBounds,
+                containerBounds: containerBounds
+            )
         }
         ctx.restoreGState()
     }
@@ -132,7 +142,8 @@ public final class SceneRenderer {
 
     private func drawElement(
         _ element: ExcalidrawElement, in ctx: CGContext,
-        files: [String: BinaryFileData], frameBounds: [String: CGRect]
+        files: [String: BinaryFileData], frameBounds: [String: CGRect],
+        containerBounds: [String: CGRect] = [:]
     ) {
         let base = element.base
         ctx.saveGState()
@@ -160,6 +171,13 @@ public final class SceneRenderer {
         switch element.kind {
         case let .text(text):
             let color = themed(base.strokeColor)
+            // Centre text bound to a container (e.g. a sticky note) within it.
+            if let containerId = text.containerId, let rect = containerBounds[containerId] {
+                let size = TextLayout.measure(text)
+                let originX = rect.midX - size.width / 2
+                let originY = rect.midY - size.height / 2
+                ctx.translateBy(x: originX - base.x, y: originY - base.y)
+            }
             TextLayout.draw(text, base: base, in: ctx, color: color)
         case let .image(image):
             drawImage(image, base: base, in: ctx, files: files)

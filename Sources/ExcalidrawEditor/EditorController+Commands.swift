@@ -110,10 +110,11 @@ public extension EditorController {
     }
 
     /// Set a text element's content (committing one undo step), or remove it if
-    /// the text is empty.
+    /// the text is empty. Container-bound text (e.g. a sticky note's label) is
+    /// kept even when empty so the note survives.
     func setText(id: String, _ text: String) {
         guard let element = scene.element(id: id), case var .text(props) = element.kind else { return }
-        if text.isEmpty {
+        if text.isEmpty, props.containerId == nil {
             store.modifyScene { scene in
                 scene = Scene(
                     elements: scene.elements.filter { $0.id != id },

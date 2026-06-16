@@ -11,6 +11,7 @@ public enum Tool: String, Sendable, CaseIterable {
     case arrow
     case freedraw
     case text
+    case postit
     case frame
     case eraser
     case hand
@@ -25,7 +26,7 @@ public enum Tool: String, Sendable, CaseIterable {
         case .arrow: .arrow(ArrowProperties())
         case .freedraw: .freedraw(FreedrawProperties())
         case .frame: .frame(name: nil)
-        case .selection, .eraser, .hand, .text: nil
+        case .selection, .eraser, .hand, .text, .postit: nil
         }
     }
 
