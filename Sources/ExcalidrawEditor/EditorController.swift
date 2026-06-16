@@ -37,6 +37,9 @@ public final class EditorController {
     /// In-flight crop handle drag (captured at pointer-down), separate from the
     /// main interaction enum so the crop code can live in an extension.
     var cropDrag: CropDrag?
+    /// In-flight elbow-arrow segment drag (id + segment index), kept outside the
+    /// interaction enum so the elbow code can live in an extension.
+    var elbowDrag: (id: String, index: Int)?
 
     struct CropDrag {
         let handle: TransformHandle
@@ -128,6 +131,7 @@ public final class EditorController {
 
     public func exitLinearEdit() {
         editingLinearID = nil
+        elbowDrag = nil
     }
 
     /// Global point + midpoint positions for the line being edited, for the
@@ -154,6 +158,17 @@ public final class EditorController {
         }
         let base = element.base
         let threshold = handleHitRadius(event.type)
+
+        // Elbow arrows are reshaped by dragging whole segments, not vertices.
+        if case let .arrow(props) = element.kind, props.elbowed {
+            for handle in elbowSegmentHandles(id)
+                where handle.point.distance(to: event.scenePoint) <= threshold {
+                elbowDrag = (id, handle.index)
+                return true
+            }
+            exitLinearEdit()
+            return false
+        }
 
         for (i, point) in pts.enumerated() {
             let global = Point(base.x + point.x, base.y + point.y)
@@ -231,6 +246,7 @@ public final class EditorController {
 
     public func pointerMove(_ event: PointerEvent) {
         if cropDrag != nil { moveCropDrag(to: event.scenePoint); return }
+        if let drag = elbowDrag { moveElbowSegment(id: drag.id, index: drag.index, to: event.scenePoint); return }
         switch interaction {
         case let .creating(id, origin, _):
             updateCreating(id: id, origin: origin, to: event.scenePoint)
@@ -285,6 +301,11 @@ public final class EditorController {
     public func pointerUp(_ event: PointerEvent) {
         if cropDrag != nil {
             cropDrag = nil
+            store.commit()
+            return
+        }
+        if elbowDrag != nil {
+            elbowDrag = nil
             store.commit()
             return
         }
@@ -512,74 +533,6 @@ public final class EditorController {
             reassignFrameMembership([id])
             store.commit()
             if !toolLocked { activeTool = .selection }
-        }
-    }
-
-    /// If the element is an arrow, bind its endpoints to nearby bindable shapes.
-    private func bindArrowEndpoints(_ id: String) {
-        store.modifyScene { scene in
-            guard var arrow = scene.element(id: id),
-                  case var .arrow(props) = arrow.kind,
-                  let first = props.points.first, let last = props.points.last else { return }
-            let startGlobal = Point(arrow.base.x + first.x, arrow.base.y + first.y)
-            let endGlobal = Point(arrow.base.x + last.x, arrow.base.y + last.y)
-            let others = scene.visibleElements
-
-            if let target = Binding.bindableElement(at: startGlobal, in: others, excluding: [id]) {
-                let bounds = ElementGeometry.bounds(target)
-                props.startBinding = FixedPointBinding(
-                    elementId: target.id, fixedPoint: Binding.fixedPoint(for: startGlobal, in: bounds), mode: .orbit
-                )
-                Self.addBoundArrow(arrowID: id, to: target.id, in: &scene)
-            }
-            if let target = Binding.bindableElement(at: endGlobal, in: others, excluding: [id]) {
-                let bounds = ElementGeometry.bounds(target)
-                props.endBinding = FixedPointBinding(
-                    elementId: target.id, fixedPoint: Binding.fixedPoint(for: endGlobal, in: bounds), mode: .orbit
-                )
-                Self.addBoundArrow(arrowID: id, to: target.id, in: &scene)
-            }
-            arrow.kind = .arrow(props)
-            scene.replace(arrow)
-        }
-    }
-
-    private static func addBoundArrow(arrowID: String, to targetID: String, in scene: inout Scene) {
-        guard var target = scene.element(id: targetID) else { return }
-        var bound = target.base.boundElements ?? []
-        guard !bound.contains(where: { $0.id == arrowID }) else { return }
-        bound.append(BoundElement(id: arrowID, type: .arrow))
-        target.base.boundElements = bound
-        scene.replace(target)
-    }
-
-    /// Recompute the endpoints of bound arrows from their targets' current
-    /// bounds, skipping arrows that are themselves being dragged.
-    static func updateBoundArrows(in scene: inout Scene, skipping: Set<String>) {
-        for element in scene.elements where !element.base.isDeleted && !skipping.contains(element.id) {
-            guard case var .arrow(props) = element.kind,
-                  let first = props.points.first, let last = props.points.last,
-                  props.startBinding != nil || props.endBinding != nil else { continue }
-            var startGlobal = Point(element.base.x + first.x, element.base.y + first.y)
-            var endGlobal = Point(element.base.x + last.x, element.base.y + last.y)
-            if let binding = props.startBinding, let target = scene.element(id: binding.elementId) {
-                startGlobal = Binding.point(forFixedPoint: binding.fixedPoint, in: ElementGeometry.bounds(target))
-            }
-            if let binding = props.endBinding, let target = scene.element(id: binding.elementId) {
-                endGlobal = Binding.point(forFixedPoint: binding.fixedPoint, in: ElementGeometry.bounds(target))
-            }
-            var arrow = element
-            if props.elbowed {
-                applyElbowRoute(to: &arrow, startGlobal: startGlobal, endGlobal: endGlobal, in: scene)
-            } else {
-                arrow.base.x = startGlobal.x
-                arrow.base.y = startGlobal.y
-                props.points = [Point(0, 0), Point(endGlobal.x - startGlobal.x, endGlobal.y - startGlobal.y)]
-                arrow.base.width = abs(endGlobal.x - startGlobal.x)
-                arrow.base.height = abs(endGlobal.y - startGlobal.y)
-                arrow.kind = .arrow(props)
-            }
-            scene.replace(arrow)
         }
     }
 

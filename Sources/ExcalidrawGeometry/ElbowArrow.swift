@@ -65,6 +65,67 @@ public enum ElbowArrow {
         return simplify(points)
     }
 
+    // MARK: Fixed-segment editing
+
+    /// Descriptor for a draggable interior segment of an elbow polyline.
+    public struct Segment: Equatable, Sendable {
+        /// Segment between `points[index - 1]` and `points[index]`.
+        public let index: Int
+        public let start: Point
+        public let end: Point
+        public let isHorizontal: Bool
+        public var midpoint: Point {
+            start.midpoint(to: end)
+        }
+    }
+
+    /// The interior ("fixable") segments — every segment except the first and
+    /// last, which touch the endpoints and so can't be pinned (matching
+    /// upstream's invariant).
+    public static func fixableSegments(_ points: [Point]) -> [Segment] {
+        guard points.count >= 4 else { return [] }
+        return (2 ... (points.count - 2)).map { i in
+            let a = points[i - 1], b = points[i]
+            return Segment(index: i, start: a, end: b, isHorizontal: abs(a.y - b.y) < abs(a.x - b.x))
+        }
+    }
+
+    /// Move the segment at `index` so it passes through `drag` (perpendicular to
+    /// the segment), shifting the two shared endpoints. Neighboring segments
+    /// stay orthogonal because only the moved segment's coordinate changes.
+    public static func moveSegment(_ points: [Point], index: Int, to drag: Point) -> [Point] {
+        guard points.indices.contains(index), index >= 1 else { return points }
+        var pts = points
+        let a = pts[index - 1], b = pts[index]
+        if abs(a.y - b.y) < abs(a.x - b.x) {
+            // Horizontal segment → drag changes its y.
+            pts[index - 1] = Point(a.x, drag.y)
+            pts[index] = Point(b.x, drag.y)
+        } else {
+            // Vertical segment → drag changes its x.
+            pts[index - 1] = Point(drag.x, a.y)
+            pts[index] = Point(drag.x, b.y)
+        }
+        return pts
+    }
+
+    /// Re-anchor only the first and last segments so the path follows moved
+    /// endpoints while every interior (pinned) segment stays put. Used to keep a
+    /// manually-shaped elbow arrow attached when its bound shapes move.
+    public static func followEndpoints(_ points: [Point], newStart: Point, newEnd: Point) -> [Point] {
+        guard points.count >= 4 else { return points }
+        var pts = points
+        let g0 = pts[0], g1 = pts[1]
+        pts[0] = newStart
+        pts[1] = abs(g0.y - g1.y) < abs(g0.x - g1.x) ? Point(g1.x, newStart.y) : Point(newStart.x, g1.y)
+
+        let n = pts.count
+        let h0 = pts[n - 1], h1 = pts[n - 2]
+        pts[n - 1] = newEnd
+        pts[n - 2] = abs(h0.y - h1.y) < abs(h0.x - h1.x) ? Point(h1.x, newEnd.y) : Point(newEnd.x, h1.y)
+        return pts
+    }
+
     // MARK: Grid + A* node
 
     private final class Node {

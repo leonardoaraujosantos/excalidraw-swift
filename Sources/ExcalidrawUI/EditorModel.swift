@@ -420,6 +420,19 @@ public final class EditorModel: ObservableObject {
         beginEditMode(at: viewPoint)
     }
 
+    /// Edit-overlay handles for the element in linear/segment edit mode. Elbow
+    /// arrows expose draggable segment midpoints; other lines/arrows expose
+    /// their vertices and insert-midpoints.
+    public var linearOverlay: (points: [Point], midpoints: [Point]) {
+        guard let id = controller.editingLinearID else { return ([], []) }
+        if let element = controller.scene.element(id: id),
+           case let .arrow(props) = element.kind, props.elbowed {
+            return ([], controller.elbowSegmentHandles(id).map(\.point))
+        }
+        let handles = controller.linearEditHandles()
+        return (handles?.points ?? [], handles?.midpoints ?? [])
+    }
+
     /// The crop frame and its handle positions (scene coords) when an image is
     /// in crop mode, for the overlay.
     public var cropOverlay: (frame: BoundingBox, handles: [Point])? {

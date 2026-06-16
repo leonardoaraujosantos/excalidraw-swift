@@ -170,8 +170,8 @@ public struct EditorView: View {
                         in: cg, viewport: model.viewport, size: size,
                         snapLinesX: model.controller.snapLinesX,
                         snapLinesY: model.controller.snapLinesY,
-                        linearPoints: model.controller.linearEditHandles()?.points ?? [],
-                        linearMidpoints: model.controller.linearEditHandles()?.midpoints ?? [],
+                        linearPoints: model.linearOverlay.points,
+                        linearMidpoints: model.linearOverlay.midpoints,
                         cropFrame: model.cropOverlay?.frame,
                         cropHandles: model.cropOverlay?.handles ?? []
                     )

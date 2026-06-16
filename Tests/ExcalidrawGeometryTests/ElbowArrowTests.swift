@@ -67,6 +67,50 @@ final class ElbowArrowTests: XCTestCase {
         assertOrthogonal(route)
     }
 
+    func testFixableSegmentsExcludeEndpoints() {
+        // 4 points → 3 segments; only the middle (index 2) is fixable.
+        let points = [Point(0, 0), Point(50, 0), Point(50, 100), Point(150, 100)]
+        let segments = ElbowArrow.fixableSegments(points)
+        XCTAssertEqual(segments.map(\.index), [2])
+        XCTAssertFalse(segments[0].isHorizontal) // vertical segment (50,0)→(50,100)
+        XCTAssertEqual(segments[0].midpoint, Point(50, 50))
+    }
+
+    func testNoFixableSegmentsForShortPaths() {
+        XCTAssertTrue(ElbowArrow.fixableSegments([Point(0, 0), Point(100, 0)]).isEmpty)
+        XCTAssertTrue(ElbowArrow.fixableSegments([Point(0, 0), Point(50, 0), Point(50, 50)]).isEmpty)
+    }
+
+    func testMoveVerticalSegmentShiftsItHorizontally() {
+        let points = [Point(0, 0), Point(50, 0), Point(50, 100), Point(150, 100)]
+        // Drag the middle vertical segment to x = 90.
+        let moved = ElbowArrow.moveSegment(points, index: 2, to: Point(90, 50))
+        XCTAssertEqual(moved[1], Point(90, 0)) // shared with first segment
+        XCTAssertEqual(moved[2], Point(90, 100)) // shared with last segment
+        XCTAssertEqual(moved[0], Point(0, 0)) // endpoints unchanged
+        XCTAssertEqual(moved[3], Point(150, 100))
+        assertOrthogonal(moved)
+    }
+
+    func testMoveHorizontalSegmentShiftsItVertically() {
+        let points = [Point(0, 0), Point(0, 50), Point(100, 50), Point(100, 150)]
+        let moved = ElbowArrow.moveSegment(points, index: 2, to: Point(50, 80))
+        XCTAssertEqual(moved[1], Point(0, 80))
+        XCTAssertEqual(moved[2], Point(100, 80))
+        assertOrthogonal(moved)
+    }
+
+    func testFollowEndpointsPreservesInteriorSegments() {
+        let points = [Point(0, 0), Point(50, 0), Point(50, 100), Point(150, 100)]
+        let moved = ElbowArrow.followEndpoints(points, newStart: Point(-20, 10), newEnd: Point(180, 130))
+        XCTAssertEqual(moved.first, Point(-20, 10))
+        XCTAssertEqual(moved.last, Point(180, 130))
+        // The pinned middle segment keeps its x = 50.
+        XCTAssertEqual(moved[1].x, 50)
+        XCTAssertEqual(moved[2].x, 50)
+        assertOrthogonal(moved)
+    }
+
     func testDiagonalBoxesProduceBend() {
         // Offset boxes force at least one corner.
         let a = box(0, 0, 80, 80)
