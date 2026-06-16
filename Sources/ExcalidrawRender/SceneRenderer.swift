@@ -83,16 +83,42 @@ public final class SceneRenderer {
             drawGrid(in: ctx, viewport: viewport, size: size)
         }
 
+        // Frame bounds in scene coordinates, for clipping their children.
+        var frameBounds: [String: CGRect] = [:]
+        for element in scene.visibleElements where isFrame(element) {
+            let b = element.base
+            frameBounds[element.id] = CGRect(x: b.x, y: b.y, width: b.width, height: b.height)
+        }
+
         for element in scene.visibleElements {
-            drawElement(element, in: ctx, files: scene.files)
+            drawElement(element, in: ctx, files: scene.files, frameBounds: frameBounds)
         }
         ctx.restoreGState()
     }
 
-    private func drawElement(_ element: ExcalidrawElement, in ctx: CGContext, files: [String: BinaryFileData]) {
+    private func isFrame(_ element: ExcalidrawElement) -> Bool {
+        switch element.kind {
+        case .frame, .magicframe: true
+        default: false
+        }
+    }
+
+    private func drawElement(
+        _ element: ExcalidrawElement, in ctx: CGContext,
+        files: [String: BinaryFileData], frameBounds: [String: CGRect]
+    ) {
         let base = element.base
         ctx.saveGState()
         defer { ctx.restoreGState() }
+
+        if isFrame(element) {
+            drawFrame(element, in: ctx)
+            return
+        }
+        // Clip elements that belong to a frame to that frame's bounds.
+        if let frameId = base.frameId, let rect = frameBounds[frameId] {
+            ctx.clip(to: rect)
+        }
 
         ctx.translateBy(x: base.x, y: base.y)
         // Rotate about the element's local centre.
@@ -121,6 +147,27 @@ public final class SceneRenderer {
             if let drawable = shapeCache.drawable(for: element) {
                 drawDrawable(drawable, base: base, in: ctx)
             }
+        }
+    }
+
+    private func drawFrame(_ element: ExcalidrawElement, in ctx: CGContext) {
+        let base = element.base
+        let border = ThemeFilter.apply(CGColor(red: 0.6, green: 0.6, blue: 0.6, alpha: 1), theme: theme)
+        let rect = CGRect(x: base.x, y: base.y, width: base.width, height: base.height)
+        let path = CGPath(roundedRect: rect, cornerWidth: 8, cornerHeight: 8, transform: nil)
+        ctx.addPath(path)
+        ctx.setStrokeColor(border)
+        ctx.setLineWidth(1)
+        ctx.setLineDash(phase: 0, lengths: [])
+        ctx.strokePath()
+
+        // Name label just above the top-left corner.
+        if case let .frame(name) = element.kind, let name, !name.isEmpty {
+            ctx.saveGState()
+            ctx.translateBy(x: base.x, y: base.y - 18)
+            let text = TextProperties(fontSize: 12, text: name)
+            TextLayout.draw(text, base: base, in: ctx, color: border)
+            ctx.restoreGState()
         }
     }
 

@@ -167,7 +167,11 @@ public final class EditorController {
         case .erasing:
             store.commit()
             selectedIDs = []
-        case .moving, .resizing, .rotating:
+        case let .moving(_, originals):
+            snapLinesX = []; snapLinesY = []
+            reassignFrameMembership(Set(originals.keys))
+            store.commit()
+        case .resizing, .rotating:
             snapLinesX = []; snapLinesY = []
             store.commit()
         case let .boxSelecting(origin):
@@ -353,6 +357,7 @@ public final class EditorController {
             selectedIDs = []
         } else {
             if bindingEnabled { bindArrowEndpoints(id) }
+            reassignFrameMembership([id])
             store.commit()
             if !toolLocked { activeTool = .selection }
         }
@@ -445,7 +450,7 @@ public final class EditorController {
             } else if !selectedIDs.contains(hit) {
                 selectedIDs = [hit]
             }
-            interaction = .moving(origin: point, originals: snapshotSelected())
+            interaction = .moving(origin: point, originals: snapshotForMove())
         } else {
             if !event.toggleSelection { selectedIDs = [] }
             interaction = .boxSelecting(origin: point)
@@ -455,6 +460,34 @@ public final class EditorController {
 
     private func snapshotSelected() -> [String: ExcalidrawElement] {
         Dictionary(selectedElements.map { ($0.id, $0) }, uniquingKeysWith: { a, _ in a })
+    }
+
+    /// Snapshot for a move: the selection plus the children of any selected
+    /// frames (so moving a frame moves its contents).
+    private func snapshotForMove() -> [String: ExcalidrawElement] {
+        var result = snapshotSelected()
+        for element in selectedElements where Frames.isFrame(element) {
+            for child in Frames.children(ofFrame: element.id, in: scene.visibleElements) {
+                result[child.id] = child
+            }
+        }
+        return result
+    }
+
+    /// Recompute `frameId` for the given non-frame elements based on which frame
+    /// now contains them.
+    private func reassignFrameMembership(_ ids: Set<String>) {
+        store.modifyScene { scene in
+            for id in ids {
+                guard let element = scene.element(id: id), !Frames.isFrame(element) else { continue }
+                let frameID = Frames.frame(containing: element, in: scene.visibleElements)
+                if element.base.frameId != frameID {
+                    var updated = element
+                    updated.base.frameId = frameID
+                    scene.replace(updated)
+                }
+            }
+        }
     }
 
     private func topElement(at point: Point, type: PointerType) -> String? {
