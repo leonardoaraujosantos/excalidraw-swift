@@ -28,6 +28,13 @@
         private var lastCentroid: CGPoint = .zero
         private var lastDistance: CGFloat = 0
 
+        /// "Hold to snap": while drawing a freehand stroke, holding the pen still
+        /// for this long finalizes the stroke and snaps it to a recognized shape.
+        private let dwellInterval: TimeInterval = 0.6
+        private var dwellTimer: Timer?
+        private var lastDrawPoint: CGPoint = .zero
+        private var recognizedViaDwell = false
+
         override init(frame: CGRect) {
             super.init(frame: frame)
             isMultipleTouchEnabled = true
@@ -50,14 +57,17 @@
                 model?.beginEditMode(at: touch.location(in: self))
                 return
             }
+            recognizedViaDwell = false
             forward(.down, touch)
+            scheduleDwell(at: touch.location(in: self))
         }
 
         override func touchesMoved(_ touches: Set<UITouch>, with event: UIEvent?) {
             let all = event?.allTouches ?? touches
-            if gesturing || all.count >= 2 { updateGesture(all); return }
+            if gesturing || all.count >= 2 { cancelDwell(); updateGesture(all); return }
             guard let touch = touches.first, accept(touch) else { return }
             forward(.move, touch)
+            scheduleDwell(at: touch.location(in: self))
         }
 
         override func touchesEnded(_ touches: Set<UITouch>, with event: UIEvent?) {
@@ -69,11 +79,13 @@
         }
 
         private func endTouches(_ touches: Set<UITouch>, event: UIEvent?) {
+            cancelDwell()
             if gesturing {
                 let remaining = (event?.allTouches ?? []).filter { $0.phase != .ended && $0.phase != .cancelled }
                 if remaining.count < 2 { gesturing = false }
             } else if let touch = touches.first, accept(touch) {
-                forward(.up, touch)
+                // The dwell already finalized + recognized this stroke.
+                if recognizedViaDwell { recognizedViaDwell = false } else { forward(.up, touch) }
             }
             let pencilStillDown = (event?.allTouches ?? []).contains {
                 $0.type == .pencil && $0.phase != .ended && $0.phase != .cancelled
@@ -84,6 +96,30 @@
         /// Palm rejection: once a pencil is active, ignore finger touches.
         private func accept(_ touch: UITouch) -> Bool {
             !(pencilActive && touch.type != .pencil)
+        }
+
+        // MARK: Hold-to-snap dwell
+
+        private func scheduleDwell(at point: CGPoint) {
+            guard let model, model.shapeRecognitionEnabled, model.isDrawingFreehand else { return }
+            lastDrawPoint = point
+            dwellTimer?.invalidate()
+            dwellTimer = Timer.scheduledTimer(withTimeInterval: dwellInterval, repeats: false) { [weak self] _ in
+                self?.fireDwell()
+            }
+        }
+
+        private func cancelDwell() {
+            dwellTimer?.invalidate()
+            dwellTimer = nil
+        }
+
+        private func fireDwell() {
+            cancelDwell()
+            guard let model, model.isDrawingFreehand else { return }
+            // Finalize the in-progress stroke, then snap it to a clean shape.
+            model.pointer(.up, at: lastDrawPoint, type: pencilActive ? .pen : .touch)
+            if model.recognizeSelectedStroke() { recognizedViaDwell = true }
         }
 
         private func forward(_ phase: PointerPhase, _ touch: UITouch) {

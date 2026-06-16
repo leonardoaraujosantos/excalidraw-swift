@@ -329,6 +329,37 @@ final class EditorModelTests: XCTestCase {
         XCTAssertFalse(m.canResetElbowShape)
     }
 
+    func testRecognizeSelectedStrokeSnapsToRectangle() {
+        let m = EditorModel()
+        m.select(tool: .freedraw)
+        let corners = [
+            CGPoint(x: 0, y: 0),
+            CGPoint(x: 100, y: 0),
+            CGPoint(x: 100, y: 100),
+            CGPoint(x: 0, y: 100),
+            CGPoint(x: 0, y: 0)
+        ]
+        m.pointer(.down, at: corners[0])
+        for i in 0 ..< (corners.count - 1) {
+            for s in 1 ... 10 {
+                let t = CGFloat(s) / 10
+                let a = corners[i], b = corners[i + 1]
+                m.pointer(.move, at: CGPoint(x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t))
+            }
+        }
+        m.pointer(.up, at: corners[0])
+        XCTAssertTrue(m.recognizeSelectedStroke())
+        if case .rectangle = m.controller.selectedElements.first?.kind {} else { XCTFail("expected rectangle") }
+    }
+
+    func testRecognitionRespectsToggle() {
+        let m = EditorModel()
+        m.shapeRecognitionEnabled = false
+        m.select(tool: .freedraw)
+        draw(m, from: CGPoint(x: 0, y: 0), to: CGPoint(x: 50, y: 50))
+        XCTAssertFalse(m.recognizeSelectedStroke()) // disabled → no-op
+    }
+
     func testAddFlowchartNodeFromModel() {
         let m = EditorModel()
         m.select(tool: .rectangle)

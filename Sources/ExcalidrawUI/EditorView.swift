@@ -321,6 +321,9 @@ public struct EditorView: View {
                 Text(stats).monospacedDigit().foregroundStyle(.secondary).accessibilityIdentifier("stats")
             }
             Spacer()
+            Button { model.shapeRecognitionEnabled.toggle() } label: {
+                Image(systemName: model.shapeRecognitionEnabled ? "scribble.variable" : "scribble")
+            }.accessibilityIdentifier("shape-recognition-toggle")
             Button { model.toggleSnap() } label: {
                 Image(systemName: model.snapEnabled ? "ruler.fill" : "ruler")
             }.accessibilityIdentifier("snap-toggle")

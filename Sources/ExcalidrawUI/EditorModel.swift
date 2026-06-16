@@ -97,10 +97,13 @@ public final class EditorModel: ObservableObject {
             pressure: pressure, shift: shift, alt: alt, toggleSelection: toggle
         )
         switch phase {
-        case .down: controller.pointerDown(event)
+        case .down:
+            controller.pointerDown(event)
+            if activeTool == .freedraw { isDrawingFreehand = true }
         case .move: controller.pointerMove(event)
         case .up:
             controller.pointerUp(event)
+            isDrawingFreehand = false
             activeTool = controller.activeTool // tool may revert after creating
         }
         revision += 1
@@ -181,6 +184,26 @@ public final class EditorModel: ObservableObject {
         self.elbowed = elbowed
         controller.setElbowed(elbowed)
         revision += 1
+    }
+
+    // MARK: Shape recognition
+
+    /// When enabled, holding still at the end of a freehand stroke snaps it to a
+    /// recognized shape (square/circle/triangle/line/diamond).
+    @Published public var shapeRecognitionEnabled = true
+
+    /// Whether a freehand stroke is currently in progress (for the dwell timer).
+    @Published public private(set) var isDrawingFreehand = false
+
+    /// Snap the just-drawn (selected) freehand stroke to a recognized shape.
+    /// Triggered by holding the pen still; no-op if recognition is off or the
+    /// selection isn't a recognizable freedraw.
+    @discardableResult
+    public func recognizeSelectedStroke() -> Bool {
+        guard shapeRecognitionEnabled, controller.selectedIDs.count == 1,
+              let id = controller.selectedIDs.first, controller.recognizeFreedraw(id) != nil else { return false }
+        revision += 1
+        return true
     }
 
     // MARK: Flowchart
