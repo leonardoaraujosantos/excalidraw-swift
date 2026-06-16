@@ -85,19 +85,40 @@ final class ElbowArrowTests: XCTestCase {
         let points = [Point(0, 0), Point(50, 0), Point(50, 100), Point(150, 100)]
         // Drag the middle vertical segment to x = 90.
         let moved = ElbowArrow.moveSegment(points, index: 2, to: Point(90, 50))
-        XCTAssertEqual(moved[1], Point(90, 0)) // shared with first segment
-        XCTAssertEqual(moved[2], Point(90, 100)) // shared with last segment
-        XCTAssertEqual(moved[0], Point(0, 0)) // endpoints unchanged
-        XCTAssertEqual(moved[3], Point(150, 100))
-        assertOrthogonal(moved)
+        XCTAssertEqual(moved.index, 2) // interior: shifts in place
+        XCTAssertEqual(moved.points[1], Point(90, 0)) // shared with first segment
+        XCTAssertEqual(moved.points[2], Point(90, 100)) // shared with last segment
+        XCTAssertEqual(moved.points[0], Point(0, 0)) // endpoints unchanged
+        XCTAssertEqual(moved.points[3], Point(150, 100))
+        assertOrthogonal(moved.points)
     }
 
     func testMoveHorizontalSegmentShiftsItVertically() {
         let points = [Point(0, 0), Point(0, 50), Point(100, 50), Point(100, 150)]
         let moved = ElbowArrow.moveSegment(points, index: 2, to: Point(50, 80))
-        XCTAssertEqual(moved[1], Point(0, 80))
-        XCTAssertEqual(moved[2], Point(100, 80))
-        assertOrthogonal(moved)
+        XCTAssertEqual(moved.points[1], Point(0, 80))
+        XCTAssertEqual(moved.points[2], Point(100, 80))
+        assertOrthogonal(moved.points)
+    }
+
+    func testDraggingFirstSegmentInsertsBend() {
+        // Single-bend arrow (3 points); the first segment is horizontal.
+        let points = [Point(0, 0), Point(100, 0), Point(100, 80)]
+        let moved = ElbowArrow.moveSegment(points, index: 1, to: Point(50, 30))
+        XCTAssertEqual(moved.points.count, 4) // a bend was inserted
+        XCTAssertEqual(moved.index, 2) // moved segment is now interior
+        XCTAssertEqual(moved.points.first, Point(0, 0)) // start stays put
+        XCTAssertEqual(moved.points.last, Point(100, 80)) // end stays put
+        assertOrthogonal(moved.points)
+    }
+
+    func testDraggingLastSegmentInsertsBend() {
+        let points = [Point(0, 0), Point(0, 80), Point(120, 80)]
+        let moved = ElbowArrow.moveSegment(points, index: 2, to: Point(60, 50))
+        XCTAssertEqual(moved.points.count, 4)
+        XCTAssertEqual(moved.points.first, Point(0, 0))
+        XCTAssertEqual(moved.points.last, Point(120, 80))
+        assertOrthogonal(moved.points)
     }
 
     func testFollowEndpointsPreservesInteriorSegments() {

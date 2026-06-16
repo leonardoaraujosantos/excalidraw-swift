@@ -56,6 +56,7 @@ public struct EditorView: View {
             Button("Cancel", role: .cancel) { model.showLinkPrompt = false }
             Button("OK") { model.commitLink() }
         }
+        .environment(\.layoutDirection, model.layoutDirection)
     }
 
     private var librarySheet: some View {
@@ -227,15 +228,18 @@ public struct EditorView: View {
 
     @ViewBuilder
     private var contextMenuItems: some View {
-        Button("Copy") { model.copy() }
-        Button("Cut") { model.cut() }
-        Button("Paste") { model.paste() }
-        Button("Duplicate") { model.duplicate() }
-        Button("Bring to Front") { model.bringToFront() }
-        Button("Send to Back") { model.sendToBack() }
-        Button("Link…") { model.promptLink() }
+        Button(model.t("labels.copy")) { model.copy() }
+        Button(model.t("labels.cut")) { model.cut() }
+        Button(model.t("labels.paste")) { model.paste() }
+        Button(model.t("labels.duplicate")) { model.duplicate() }
+        Button(model.t("labels.bringToFront")) { model.bringToFront() }
+        Button(model.t("labels.sendToBack")) { model.sendToBack() }
+        Button("\(model.t("labels.link"))…") { model.promptLink() }
+        if model.canResetElbowShape {
+            Button("Reset Arrow Shape") { model.resetElbowShape() }
+        }
         Divider()
-        Button("Delete", role: .destructive) { model.deleteSelected() }
+        Button(model.t("labels.delete"), role: .destructive) { model.deleteSelected() }
     }
 
     // MARK: Properties / footer

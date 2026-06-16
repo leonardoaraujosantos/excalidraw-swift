@@ -88,6 +88,35 @@ final class ElbowArrowEditorTests: XCTestCase {
         assertOrthogonal(global)
     }
 
+    func testDragFirstSegmentInsertsBendAndPins() {
+        // Single-bend elbow (3 points): drag the first segment to add a bend.
+        let props = ArrowProperties(
+            points: [Point(0, 0), Point(100, 0), Point(100, 80)],
+            endArrowhead: .arrow,
+            elbowed: true
+        )
+        let base = BaseProperties(id: "arrow")
+        let ec = EditorController(scene: Scene(elements: [ExcalidrawElement(base: base, kind: .arrow(props))]))
+        XCTAssertTrue(ec.beginLinearEdit(at: Point(50, 0))) // grab the first segment's midpoint
+        ec.pointerDown(PointerEvent(scenePoint: Point(50, 0), phase: .down))
+        ec.pointerMove(PointerEvent(scenePoint: Point(50, 30), phase: .move))
+        ec.pointerUp(PointerEvent(scenePoint: Point(50, 30), phase: .up))
+        guard case let .arrow(updated) = ec.scene.element(id: "arrow")?.kind else { return XCTFail("arrow") }
+        XCTAssertGreaterThanOrEqual(updated.points.count, 4) // a bend was inserted
+        XCTAssertFalse(updated.fixedSegments?.isEmpty ?? true)
+    }
+
+    func testResetElbowShapeClearsPinsAndReroutes() {
+        let ec = fourPointElbow()
+        ec.moveElbowSegment(id: "arrow", index: 2, to: Point(90, 50))
+        ec.store.commit() // pointer-up normally commits the drag
+        XCTAssertTrue(ec.hasFixedSegments("arrow"))
+        ec.resetElbowShape("arrow")
+        XCTAssertFalse(ec.hasFixedSegments("arrow"))
+        XCTAssertTrue(ec.undo()) // reset is one undo step
+        XCTAssertTrue(ec.hasFixedSegments("arrow"))
+    }
+
     func testBoundElbowArrowReroutesOnTargetMove() throws {
         var a = BaseProperties(id: "a"); a.x = 0; a.y = 0; a.width = 100; a.height = 100; a.backgroundColor = "#f00"
         var b = BaseProperties(id: "b"); b.x = 300; b.y = 0; b.width = 100; b.height = 100; b.backgroundColor = "#f00"

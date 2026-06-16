@@ -183,6 +183,40 @@ public final class EditorModel: ObservableObject {
         revision += 1
     }
 
+    // MARK: Localization
+
+    @Published public var locale: ExcalidrawModel.Locale = Localization.english
+
+    /// Translate a UI string key in the current locale.
+    public func t(_ key: String) -> String {
+        Localization.string(key, in: locale)
+    }
+
+    /// Switch the UI locale by language tag (e.g. `"es"`, `"ar"`).
+    public func setLocale(_ tag: String) {
+        locale = Localization.locale(for: tag)
+        revision += 1
+    }
+
+    /// Layout direction for the current locale, for RTL mirroring.
+    public var layoutDirection: LayoutDirection {
+        locale.isRTL ? .rightToLeft : .leftToRight
+    }
+
+    /// Whether any selected elbow arrow has pinned segments (shows "Reset arrow
+    /// shape" in the menu).
+    public var canResetElbowShape: Bool {
+        controller.selectedElements.contains { controller.hasFixedSegments($0.id) }
+    }
+
+    /// Release pinned segments on every selected elbow arrow and re-route them.
+    public func resetElbowShape() {
+        for element in controller.selectedElements {
+            controller.resetElbowShape(element.id)
+        }
+        revision += 1
+    }
+
     // MARK: Element linking
 
     @Published public var showLinkPrompt = false

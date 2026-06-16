@@ -80,33 +80,64 @@ public enum ElbowArrow {
     }
 
     /// The interior ("fixable") segments — every segment except the first and
-    /// last, which touch the endpoints and so can't be pinned (matching
-    /// upstream's invariant).
+    /// last, which touch the endpoints (matching upstream's invariant that the
+    /// first/last segment can't be pinned without first inserting a bend).
     public static func fixableSegments(_ points: [Point]) -> [Segment] {
         guard points.count >= 4 else { return [] }
-        return (2 ... (points.count - 2)).map { i in
-            let a = points[i - 1], b = points[i]
-            return Segment(index: i, start: a, end: b, isHorizontal: abs(a.y - b.y) < abs(a.x - b.x))
-        }
+        return (2 ... (points.count - 2)).map { segment(points, index: $0) }
+    }
+
+    /// Every draggable segment, including the first and last. Dragging an end
+    /// segment inserts a bend (see `moveSegment`).
+    public static func segments(_ points: [Point]) -> [Segment] {
+        guard points.count >= 2 else { return [] }
+        return (1 ... (points.count - 1)).map { segment(points, index: $0) }
+    }
+
+    private static func segment(_ points: [Point], index: Int) -> Segment {
+        let a = points[index - 1], b = points[index]
+        return Segment(index: index, start: a, end: b, isHorizontal: abs(a.y - b.y) < abs(a.x - b.x))
     }
 
     /// Move the segment at `index` so it passes through `drag` (perpendicular to
-    /// the segment), shifting the two shared endpoints. Neighboring segments
-    /// stay orthogonal because only the moved segment's coordinate changes.
-    public static func moveSegment(_ points: [Point], index: Int, to drag: Point) -> [Point] {
-        guard points.indices.contains(index), index >= 1 else { return points }
+    /// the segment), shifting the two shared endpoints. Interior segments shift
+    /// in place; dragging the first or last segment inserts a bend so the
+    /// endpoint stays put. Returns the new points and the (possibly shifted)
+    /// index of the moved segment.
+    public static func moveSegment(_ points: [Point], index: Int, to drag: Point) -> (points: [Point], index: Int) {
+        guard points.indices.contains(index), index >= 1 else { return (points, index) }
+        let n = points.count
+        let a = points[index - 1], b = points[index]
+        let horizontal = abs(a.y - b.y) < abs(a.x - b.x)
         var pts = points
-        let a = pts[index - 1], b = pts[index]
-        if abs(a.y - b.y) < abs(a.x - b.x) {
-            // Horizontal segment → drag changes its y.
-            pts[index - 1] = Point(a.x, drag.y)
-            pts[index] = Point(b.x, drag.y)
-        } else {
-            // Vertical segment → drag changes its x.
-            pts[index - 1] = Point(drag.x, a.y)
-            pts[index] = Point(drag.x, b.y)
+
+        if index >= 2, index <= n - 2 {
+            // Interior segment: shift both shared endpoints in place.
+            if horizontal {
+                pts[index - 1] = Point(a.x, drag.y); pts[index] = Point(b.x, drag.y)
+            } else {
+                pts[index - 1] = Point(drag.x, a.y); pts[index] = Point(drag.x, b.y)
+            }
+            return (pts, index)
         }
-        return pts
+
+        if index == 1 {
+            // First segment: insert a bend after the start point.
+            if horizontal {
+                pts[1] = Point(b.x, drag.y); pts.insert(Point(a.x, drag.y), at: 1)
+            } else {
+                pts[1] = Point(drag.x, b.y); pts.insert(Point(drag.x, a.y), at: 1)
+            }
+            return (pts, 2)
+        }
+
+        // Last segment: insert a bend before the end point.
+        if horizontal {
+            pts[n - 2] = Point(a.x, drag.y); pts.insert(Point(b.x, drag.y), at: n - 1)
+        } else {
+            pts[n - 2] = Point(drag.x, a.y); pts.insert(Point(drag.x, b.y), at: n - 1)
+        }
+        return (pts, n - 1)
     }
 
     /// Re-anchor only the first and last segments so the path follows moved

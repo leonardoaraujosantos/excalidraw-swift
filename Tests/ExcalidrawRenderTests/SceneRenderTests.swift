@@ -1,4 +1,5 @@
 import CoreGraphics
+import ExcalidrawGeometry
 import ExcalidrawMath
 import ExcalidrawModel
 import XCTest
@@ -59,6 +60,29 @@ final class SceneRenderTests: XCTestCase {
             inked += 1
         }
         XCTAssertGreaterThan(inked, 200, "embeddable should render a visible placeholder")
+    }
+
+    func testClipRegionLimitsRepaintToDirtyArea() {
+        // Two solid rects far apart; clip to only the first one's region.
+        var left = base("l", x: 10, y: 10, w: 60, h: 60); left.backgroundColor = "#ff0000"; left.fillStyle = .solid
+        var right = base("r", x: 300, y: 10, w: 60, h: 60); right.backgroundColor = "#ff0000"; right.fillStyle = .solid
+        let scene = Scene(elements: [
+            ExcalidrawElement(base: left, kind: .rectangle),
+            ExcalidrawElement(base: right, kind: .rectangle)
+        ])
+        let (w, h) = (400, 100)
+        let ctx = context(width: w, height: h)
+        SceneRenderer().render(
+            scene, in: ctx, viewport: Viewport(), size: CGSize(width: w, height: h),
+            clip: BoundingBox(minX: 0, minY: 0, maxX: 100, maxY: 100)
+        )
+        let (px, _) = rgb(ctx, width: w, height: h)
+        func isRed(_ x: Int, _ y: Int) -> Bool {
+            let i = (y * w + x) * 4
+            return px[i] > 200 && px[i + 1] < 100 && px[i + 2] < 100
+        }
+        XCTAssertTrue(isRed(40, 40), "the clipped-in rect should paint")
+        XCTAssertFalse(isRed(330, 40), "the rect outside the clip must not paint")
     }
 
     func testOffScreenElementIsCulled() {

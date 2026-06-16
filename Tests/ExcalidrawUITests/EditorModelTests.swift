@@ -1,5 +1,6 @@
 import CoreGraphics
 import ExcalidrawEditor
+import ExcalidrawMath
 import ExcalidrawModel
 import ExcalidrawRender
 import XCTest
@@ -300,6 +301,32 @@ final class EditorModelTests: XCTestCase {
             let a = props.points[i], b = props.points[i + 1]
             XCTAssertTrue(abs(a.x - b.x) < 1e-6 || abs(a.y - b.y) < 1e-6)
         }
+    }
+
+    func testLocaleSwitchingTranslatesAndSetsDirection() {
+        let m = EditorModel()
+        XCTAssertEqual(m.t("labels.copy"), "Copy")
+        XCTAssertEqual(m.layoutDirection, .leftToRight)
+        m.setLocale("es")
+        XCTAssertEqual(m.t("labels.copy"), "Copiar")
+        m.setLocale("ar")
+        XCTAssertEqual(m.t("labels.copy"), "نسخ")
+        XCTAssertEqual(m.layoutDirection, .rightToLeft)
+    }
+
+    func testResetElbowShapeFromModel() {
+        let props = ArrowProperties(
+            points: [Point(0, 0), Point(50, 0), Point(50, 100), Point(150, 100)],
+            endArrowhead: .arrow, elbowed: true,
+            fixedSegments: [FixedSegment(start: Point(50, 0), end: Point(50, 100), index: 2)]
+        )
+        var base = BaseProperties(id: "a"); base.width = 150; base.height = 100
+        let scene = ExcalidrawModel.Scene(elements: [ExcalidrawElement(base: base, kind: .arrow(props))])
+        let m = EditorModel(scene: scene)
+        m.controller.selectAll()
+        XCTAssertTrue(m.canResetElbowShape)
+        m.resetElbowShape()
+        XCTAssertFalse(m.canResetElbowShape)
     }
 
     func testThemeAndZenToggles() {

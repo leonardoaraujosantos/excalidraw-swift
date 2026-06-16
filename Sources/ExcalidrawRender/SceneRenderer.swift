@@ -64,7 +64,13 @@ public final class SceneRenderer {
         return ThemeFilter.apply(base, theme: theme)
     }
 
-    public func render(_ scene: Scene, in ctx: CGContext, viewport: Viewport, size: CGSize, theme: Theme = .light) {
+    /// Render `scene`. Pass `clip` (a scene-space rectangle, e.g. a
+    /// `DirtyRegion`) to repaint only that region for incremental redraw;
+    /// `nil` paints the whole viewport.
+    public func render(
+        _ scene: Scene, in ctx: CGContext, viewport: Viewport, size: CGSize,
+        theme: Theme = .light, clip: BoundingBox? = nil
+    ) {
         self.theme = theme
         // Background: a user-set colour is theme-filtered (white→dark); the
         // default canvas colour is used directly so it isn't double-inverted.
@@ -81,6 +87,11 @@ public final class SceneRenderer {
         ctx.scaleBy(x: viewport.zoom, y: viewport.zoom)
         ctx.translateBy(x: viewport.scrollX, y: viewport.scrollY)
 
+        // Incremental redraw: restrict drawing to the dirty region.
+        if let clip {
+            ctx.clip(to: CGRect(x: clip.minX, y: clip.minY, width: clip.width, height: clip.height))
+        }
+
         if scene.appState.gridModeEnabled == true {
             drawGrid(in: ctx, viewport: viewport, size: size)
         }
@@ -96,9 +107,16 @@ public final class SceneRenderer {
         // an on-screen child still clips to a frame whose border is off-screen.
         let topLeft = viewport.viewToScene(Point(0, 0))
         let bottomRight = viewport.viewToScene(Point(size.width, size.height))
-        let visibleRegion = BoundingBox(
+        var visibleRegion = BoundingBox(
             minX: topLeft.x, minY: topLeft.y, maxX: bottomRight.x, maxY: bottomRight.y
         )
+        // When repainting a dirty region, only consider elements within it.
+        if let clip {
+            visibleRegion = BoundingBox(
+                minX: max(visibleRegion.minX, clip.minX), minY: max(visibleRegion.minY, clip.minY),
+                maxX: min(visibleRegion.maxX, clip.maxX), maxY: min(visibleRegion.maxY, clip.maxY)
+            )
+        }
         for element in Culling.visible(scene.visibleElements, in: visibleRegion, margin: cullingMargin) {
             drawElement(element, in: ctx, files: scene.files, frameBounds: frameBounds)
         }

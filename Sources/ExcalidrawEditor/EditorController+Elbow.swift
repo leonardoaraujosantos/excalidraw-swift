@@ -32,36 +32,44 @@ public extension EditorController {
         }
     }
 
-    /// Global midpoints of the draggable interior segments of the elbow arrow
-    /// `id`, for the edit overlay. Empty for non-elbow arrows.
+    /// Global midpoints of every draggable segment of the elbow arrow `id`, for
+    /// the edit overlay. Empty for non-elbow arrows.
     func elbowSegmentHandles(_ id: String) -> [(index: Int, point: Point)] {
         guard let element = scene.element(id: id), case let .arrow(props) = element.kind, props.elbowed else {
             return []
         }
         let global = props.points.map { Point(element.base.x + $0.x, element.base.y + $0.y) }
-        return ElbowArrow.fixableSegments(global).map { ($0.index, $0.midpoint) }
+        return ElbowArrow.segments(global).map { ($0.index, $0.midpoint) }
     }
 
-    /// Drag the interior segment `index` of elbow arrow `id` so it passes
-    /// through the global point `to`, pinning it as a fixed segment.
-    func moveElbowSegment(id: String, index: Int, to point: Point) {
+    /// Drag the segment `index` of elbow arrow `id` so it passes through the
+    /// global point `to`, pinning it as a fixed segment. Returns the (possibly
+    /// shifted) index of the moved segment, so a live drag can keep tracking it.
+    @discardableResult
+    func moveElbowSegment(id: String, index: Int, to point: Point) -> Int {
+        var resultIndex = index
         store.modifyScene { scene in
             guard var arrow = scene.element(id: id), case var .arrow(props) = arrow.kind, props.elbowed else { return }
             let global = props.points.map { Point(arrow.base.x + $0.x, arrow.base.y + $0.y) }
             let moved = ElbowArrow.moveSegment(global, index: index, to: point)
-            let origin = moved.first ?? point
-            props.points = moved.map { Point($0.x - origin.x, $0.y - origin.y) }
+            resultIndex = moved.index
+            let origin = moved.points.first ?? point
+            props.points = moved.points.map { Point($0.x - origin.x, $0.y - origin.y) }
             arrow.base.x = origin.x
             arrow.base.y = origin.y
             let xs = props.points.map(\.x), ys = props.points.map(\.y)
             arrow.base.width = (xs.max() ?? 0) - (xs.min() ?? 0)
             arrow.base.height = (ys.max() ?? 0) - (ys.min() ?? 0)
 
-            // Record / update the pinned segment.
-            guard props.points.indices.contains(index) else { arrow.kind = .arrow(props); scene.replace(arrow); return }
-            let pinned = FixedSegment(start: props.points[index - 1], end: props.points[index], index: index)
+            // Record / update the pinned segment at its new index.
+            guard props.points.indices.contains(moved.index) else {
+                arrow.kind = .arrow(props); scene.replace(arrow); return
+            }
+            let pinned = FixedSegment(
+                start: props.points[moved.index - 1], end: props.points[moved.index], index: moved.index
+            )
             var segments = props.fixedSegments ?? []
-            if let existing = segments.firstIndex(where: { $0.index == index }) {
+            if let existing = segments.firstIndex(where: { $0.index == moved.index }) {
                 segments[existing] = pinned
             } else {
                 segments.append(pinned)
@@ -71,6 +79,33 @@ public extension EditorController {
             arrow.kind = .arrow(props)
             scene.replace(arrow)
         }
+        return resultIndex
+    }
+
+    /// Release every pinned segment of elbow arrow `id` and re-route it
+    /// automatically (one undo step). No-op if it has no pins.
+    func resetElbowShape(_ id: String) {
+        guard let element = scene.element(id: id), case let .arrow(props) = element.kind,
+              props.elbowed, props.fixedSegments?.isEmpty == false else { return }
+        store.transaction { scene in
+            guard var arrow = scene.element(id: id), case var p = arrow.kind,
+                  case let .arrow(arrowProps) = p, let first = arrowProps.points.first,
+                  let last = arrowProps.points.last else { return }
+            var cleared = arrowProps
+            cleared.fixedSegments = nil
+            p = .arrow(cleared)
+            arrow.kind = p
+            let startGlobal = Point(arrow.base.x + first.x, arrow.base.y + first.y)
+            let endGlobal = Point(arrow.base.x + last.x, arrow.base.y + last.y)
+            Self.applyElbowRoute(to: &arrow, startGlobal: startGlobal, endGlobal: endGlobal, in: scene)
+            scene.replace(arrow)
+        }
+    }
+
+    /// Whether elbow arrow `id` currently has any pinned segments (for the UI).
+    func hasFixedSegments(_ id: String) -> Bool {
+        guard let element = scene.element(id: id), case let .arrow(props) = element.kind else { return false }
+        return props.fixedSegments?.isEmpty == false
     }
 
     /// Re-route the elbow arrow `id` from its current endpoints (called after

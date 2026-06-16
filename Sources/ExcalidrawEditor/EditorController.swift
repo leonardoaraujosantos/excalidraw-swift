@@ -246,7 +246,11 @@ public final class EditorController {
 
     public func pointerMove(_ event: PointerEvent) {
         if cropDrag != nil { moveCropDrag(to: event.scenePoint); return }
-        if let drag = elbowDrag { moveElbowSegment(id: drag.id, index: drag.index, to: event.scenePoint); return }
+        if let drag = elbowDrag {
+            let newIndex = moveElbowSegment(id: drag.id, index: drag.index, to: event.scenePoint)
+            elbowDrag = (drag.id, newIndex)
+            return
+        }
         switch interaction {
         case let .creating(id, origin, _):
             updateCreating(id: id, origin: origin, to: event.scenePoint)
