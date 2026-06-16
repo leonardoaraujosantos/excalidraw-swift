@@ -86,6 +86,54 @@ final class RenderBenchmarkTests: XCTestCase {
         }
     }
 
+    private func blit(_ image: CGImage, into ctx: CGContext, _ w: Int, _ h: Int) {
+        ctx.draw(image, in: CGRect(x: 0, y: 0, width: w, height: h))
+    }
+
+    func testLayeredFrameIsCheaperThanFullRepaint() throws {
+        // Stage B: while dragging one element, a frame should be a cached-static
+        // blit + a single-element redraw — far cheaper than repainting all 1500.
+        let (w, h) = (1200, 800)
+        let size = CGSize(width: w, height: h)
+        let scene = syntheticScene(count: 1500)
+        let renderer = SceneRenderer()
+        let viewport = Viewport()
+        let allIDs = Set(scene.visibleElements.map(\.id))
+        let dynamic: Set = ["e0"] // pretend e0 is being dragged
+
+        // Baseline: full repaint per frame.
+        let fullCtx = context(width: w, height: h)
+        renderer.render(scene, in: fullCtx, viewport: viewport, size: size)
+        var start = DispatchTime.now().uptimeNanoseconds
+        for _ in 0 ..< 10 {
+            renderer.render(scene, in: fullCtx, viewport: viewport, size: size)
+        }
+        let fullMs = Double(DispatchTime.now().uptimeNanoseconds - start) / 1e6 / 10
+
+        // Stage B: build the static layer once, then per frame blit + redraw e0.
+        let staticCtx = context(width: w, height: h)
+        renderer.render(scene, in: staticCtx, viewport: viewport, size: size, skipping: dynamic)
+        let staticImage = try XCTUnwrap(staticCtx.makeImage())
+        let frameCtx = context(width: w, height: h)
+        start = DispatchTime.now().uptimeNanoseconds
+        for _ in 0 ..< 10 {
+            blit(staticImage, into: frameCtx, w, h)
+            renderer.render(
+                scene, in: frameCtx, viewport: viewport, size: size,
+                skipping: allIDs.subtracting(dynamic), fillBackground: false
+            )
+        }
+        let layeredMs = Double(DispatchTime.now().uptimeNanoseconds - start) / 1e6 / 10
+
+        print(String(format: "BENCH full repaint n=1500: %.2f ms/frame", fullMs))
+        print(String(
+            format: "BENCH layered frame  n=1500: %.2f ms/frame (%.1fx faster)",
+            layeredMs,
+            fullMs / layeredMs
+        ))
+        XCTAssertLessThan(layeredMs, fullMs, "layered frame should be cheaper than a full repaint")
+    }
+
     func testCullingReducesWorkWhenZoomedIn() {
         // Same scene, but a zoomed-in viewport showing a small corner: culling
         // should make a frame much cheaper than the full-scene render.

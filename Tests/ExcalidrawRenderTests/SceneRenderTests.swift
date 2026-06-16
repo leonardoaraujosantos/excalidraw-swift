@@ -129,6 +129,65 @@ final class SceneRenderTests: XCTestCase {
         XCTAssertTrue(darkNear(80, 80), "note text should render near the centre")
     }
 
+    func testLayeredCompositeMatchesFullRender() throws {
+        // The Stage-B layered path (static-layer image + dynamic redraw) must
+        // produce the same pixels as a single full render.
+        var a = base("a", x: 20, y: 20, w: 80, h: 60); a.backgroundColor = "#ffc9c9"; a.fillStyle = .solid
+        var b = base("b", x: 60, y: 50, w: 80, h: 60); b.backgroundColor = "#a5d8ff"; b.fillStyle = .solid
+        let scene = Scene(elements: [
+            ExcalidrawElement(base: a, kind: .rectangle),
+            ExcalidrawElement(base: b, kind: .ellipse)
+        ])
+        let (w, h) = (180, 140)
+        let size = CGSize(width: w, height: h)
+        let renderer = SceneRenderer()
+
+        let full = context(width: w, height: h)
+        renderer.render(scene, in: full, viewport: Viewport(), size: size)
+
+        // Layered: render static (skip "b"), capture, blit, redraw only "b".
+        let staticCtx = context(width: w, height: h)
+        renderer.render(scene, in: staticCtx, viewport: Viewport(), size: size, skipping: ["b"])
+        let staticImage = try XCTUnwrap(staticCtx.makeImage())
+        let layered = context(width: w, height: h)
+        layered.draw(staticImage, in: CGRect(x: 0, y: 0, width: w, height: h))
+        renderer.render(scene, in: layered, viewport: Viewport(), size: size, skipping: ["a"], fillBackground: false)
+
+        let (pf, total) = rgb(full, width: w, height: h)
+        let (pl, _) = rgb(layered, width: w, height: h)
+        var differing = 0
+        for i in stride(from: 0, to: total, by: 4) where abs(Int(pf[i]) - Int(pl[i])) > 24
+            || abs(Int(pf[i + 1]) - Int(pl[i + 1])) > 24 || abs(Int(pf[i + 2]) - Int(pl[i + 2])) > 24 {
+            differing += 1
+        }
+        let fraction = Double(differing) / Double(w * h)
+        XCTAssertLessThan(fraction, 0.02, "layered composite should match the full render")
+    }
+
+    func testSkippingOmitsElements() {
+        var keep = base("keep", x: 10, y: 10, w: 60, h: 60); keep.backgroundColor = "#ff0000"; keep.fillStyle = .solid
+        var skip = base("skip", x: 100, y: 10, w: 60, h: 60); skip.backgroundColor = "#ff0000"; skip.fillStyle = .solid
+        let scene = Scene(elements: [
+            ExcalidrawElement(base: keep, kind: .rectangle),
+            ExcalidrawElement(base: skip, kind: .rectangle)
+        ])
+        let (w, h) = (180, 90)
+        let ctx = context(width: w, height: h)
+        SceneRenderer().render(
+            scene,
+            in: ctx,
+            viewport: Viewport(),
+            size: CGSize(width: w, height: h),
+            skipping: ["skip"]
+        )
+        let (px, _) = rgb(ctx, width: w, height: h)
+        func red(_ x: Int, _ y: Int) -> Bool {
+            let i = (y * w + x) * 4; return px[i] > 200 && px[i + 1] < 100
+        }
+        XCTAssertTrue(red(40, 40), "kept element should render")
+        XCTAssertFalse(red(130, 40), "skipped element must not render")
+    }
+
     func testSolidFillProducesFillColoredPixels() {
         var rect = base("r", x: 10, y: 10, w: 100, h: 80)
         rect.backgroundColor = "#ff0000"

@@ -69,22 +69,25 @@ public final class SceneRenderer {
     /// `nil` paints the whole viewport.
     public func render(
         _ scene: Scene, in ctx: CGContext, viewport: Viewport, size: CGSize,
-        theme: Theme = .light, clip: BoundingBox? = nil
+        theme: Theme = .light, clip: BoundingBox? = nil,
+        skipping: Set<String> = [], fillBackground: Bool = true
     ) {
         self.theme = theme
         ctx.setShouldAntialias(true)
         ctx.setAllowsAntialiasing(true)
         ctx.interpolationQuality = .high
-        // Background: a user-set colour is theme-filtered (white→dark); the
-        // default canvas colour is used directly so it isn't double-inverted.
-        let background: CGColor = if let userBackground = scene.appState.viewBackgroundColor {
-            themed(userBackground)
-        } else {
-            ColorParser.cgColor(theme == .dark ? "#121212" : "#ffffff")
-                ?? CGColor(red: 1, green: 1, blue: 1, alpha: 1)
+        // Background + grid belong to the static layer; the dynamic overlay pass
+        // (`fillBackground: false`) composites onto an already-painted image.
+        if fillBackground {
+            let background: CGColor = if let userBackground = scene.appState.viewBackgroundColor {
+                themed(userBackground)
+            } else {
+                ColorParser.cgColor(theme == .dark ? "#121212" : "#ffffff")
+                    ?? CGColor(red: 1, green: 1, blue: 1, alpha: 1)
+            }
+            ctx.setFillColor(background)
+            ctx.fill(CGRect(origin: .zero, size: size))
         }
-        ctx.setFillColor(background)
-        ctx.fill(CGRect(origin: .zero, size: size))
 
         ctx.saveGState()
         ctx.scaleBy(x: viewport.zoom, y: viewport.zoom)
@@ -95,7 +98,7 @@ public final class SceneRenderer {
             ctx.clip(to: CGRect(x: clip.minX, y: clip.minY, width: clip.width, height: clip.height))
         }
 
-        if scene.appState.gridModeEnabled == true {
+        if fillBackground, scene.appState.gridModeEnabled == true {
             drawGrid(in: ctx, viewport: viewport, size: size)
         }
 
@@ -124,7 +127,8 @@ public final class SceneRenderer {
                 maxX: min(visibleRegion.maxX, clip.maxX), maxY: min(visibleRegion.maxY, clip.maxY)
             )
         }
-        for element in Culling.visible(scene.visibleElements, in: visibleRegion, margin: cullingMargin) {
+        for element in Culling.visible(scene.visibleElements, in: visibleRegion, margin: cullingMargin)
+            where !skipping.contains(element.id) {
             drawElement(
                 element,
                 in: ctx,

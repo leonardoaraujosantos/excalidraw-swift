@@ -450,6 +450,35 @@ final class EditorModelTests: XCTestCase {
         XCTAssertEqual(m.controller.scene.visibleElements.count, 18 + 6) // +3 cells × 2
     }
 
+    func testLayeredRenderingDuringInteraction() {
+        let m = EditorModel()
+        m.canvasSize = CGSize(width: 400, height: 300)
+        // Two committed rectangles.
+        m.select(tool: .rectangle)
+        draw(m, from: CGPoint(x: 10, y: 10), to: CGPoint(x: 60, y: 50))
+        m.select(tool: .rectangle)
+        draw(m, from: CGPoint(x: 100, y: 10), to: CGPoint(x: 150, y: 50))
+
+        // Idle: no static layer (full render path).
+        XCTAssertNil(m.staticLayerImage(size: CGSize(width: 400, height: 300)))
+
+        // Begin moving the second rectangle: it becomes the dynamic layer; the
+        // static layer caches everything else.
+        m.select(tool: .selection)
+        m.pointer(.down, at: CGPoint(x: 100, y: 30)) // on the second rectangle's left edge
+        XCTAssertFalse(m.dynamicIDs.isEmpty)
+        let image = m.staticLayerImage(size: CGSize(width: 400, height: 300))
+        XCTAssertNotNil(image)
+        // Cached: a second request during the same interaction returns the same image.
+        XCTAssertTrue(image === m.staticLayerImage(size: CGSize(width: 400, height: 300)))
+
+        m.pointer(.move, at: CGPoint(x: 200, y: 120))
+        m.pointer(.up, at: CGPoint(x: 200, y: 120))
+        // Interaction ended: back to the full-render path.
+        XCTAssertTrue(m.dynamicIDs.isEmpty)
+        XCTAssertNil(m.staticLayerImage(size: CGSize(width: 400, height: 300)))
+    }
+
     func testThemeAndZenToggles() {
         let m = EditorModel()
         XCTAssertEqual(m.theme, .light)

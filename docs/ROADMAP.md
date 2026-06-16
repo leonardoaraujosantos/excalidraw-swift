@@ -108,10 +108,10 @@ Legend: 🎯 milestone deliverable · 🧪 test focus · ⚠️ risk/hard part.
 - **Golden-image references** (the long-deferred item): committed pixel baselines, diffable within tolerance.
 - 🎯 Exit: numbers identifying the real bottleneck + a baseline to diff against. 🧪 perf benchmarks + golden images.
 
-### Stage B — Layered static/dynamic split (biggest ROI, no Metal)
-- Split the canvas into a cached **static layer** (the committed scene) and a **dynamic overlay** (the in-progress element + selection handles/snap lines). Repaint only the overlay each frame; repaint the static layer only when the committed scene changes — and then only its `DirtyRegion` sub-rect via `render(clip:)` (both already built, currently unused live).
-- Stop bumping `revision` (full repaint) on non-visual changes.
-- 🎯 Exit: smooth drag/draw/select on large scenes with the CPU renderer (expected ~5–10× fewer pixels rasterized during interaction). ⚠️ correct layer invalidation (z-order, frames, bound text).
+### Stage B — Layered static/dynamic split (biggest ROI, no Metal) ✅
+> **Status: done.** `SceneRenderer.render` gained `skipping:`/`fillBackground:`; `StaticLayerCache` memoizes the committed scene as an offscreen image. During an interaction `EditorModel` captures the **dynamic set** (the moved/created element plus its bound arrows/text and any frame children — so anything that actually changes mid-drag is excluded from the cache), builds the static layer once, and each frame blits it (via SwiftUI `Image`, orientation-safe) + redraws only the dynamic elements and the overlay; idle frames render in full. **Measured:** a 1500-element frame drops from ~45 ms (full repaint) to ~11 ms (layered) — **4.1× faster** — and `testLayeredCompositeMatchesFullRender` proves the composite equals a full render. Builds for iOS.
+- Split the canvas into a cached **static layer** and a **dynamic overlay**; repaint only the overlay each frame.
+- 🎯 Exit: smooth drag/draw/select on large scenes with the CPU renderer. *(Device-side timing pending a signing/test-plan setup — see note.)*
 
 ### Stage C — Retained tile cache + crisp zoom
 - Cache rasterized content (tiles / `CALayer`) and **recomposite** on pan/zoom instead of repainting; re-rasterize vectors at the new zoom so high zoom stays sharp (fixes the current `Canvas` magnification softness).

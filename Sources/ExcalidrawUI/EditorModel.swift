@@ -120,14 +120,27 @@ public final class EditorModel: ObservableObject {
         case .down:
             controller.pointerDown(event)
             if activeTool == .freedraw { isDrawingFreehand = true }
+            beginDynamicLayer()
         case .move: controller.pointerMove(event)
         case .up:
             controller.pointerUp(event)
             isDrawingFreehand = false
+            endDynamicLayer()
             activeTool = controller.activeTool // tool may revert after creating
         }
         revision += 1
     }
+
+    // MARK: Layered rendering (Phase 7.5 Stage B)
+
+    /// Display scale for the offscreen static-layer image (set from the canvas).
+    public var displayScale: Double = 2
+    let staticLayer = StaticLayerCache()
+    /// Elements redrawn every frame during an interaction (the moved/created
+    /// element plus its bound arrows and any frame children); everything else is
+    /// the cached static layer. (Layered rendering lives in `EditorModel+Rendering`.)
+    var dynamicIDs: Set<String> = []
+    var staticToken = 0
 
     // MARK: Viewport (two-finger pan / pinch)
 

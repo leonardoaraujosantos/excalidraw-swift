@@ -12,6 +12,7 @@ import UniformTypeIdentifiers
 public struct EditorView: View {
     @StateObject private var model: EditorModel
     @Environment(\.horizontalSizeClass) private var sizeClass
+    @Environment(\.displayScale) private var displayScale
     @State private var exported = false
     @State private var photoItem: PhotosPickerItem?
     @State private var importingLibrary = false
@@ -176,31 +177,20 @@ public struct EditorView: View {
         GeometryReader { geo in
             Canvas { context, size in
                 _ = model.revision
-                context.withCGContext { cg in
-                    model.renderer.render(
-                        model.controller.scene,
-                        in: cg,
-                        viewport: model.viewport,
-                        size: size,
-                        theme: model.theme
+                // Stage B: during an interaction, blit the cached static layer
+                // and redraw only the in-flight elements; otherwise full render.
+                if let staticImage = model.staticLayerImage(size: size) {
+                    context.draw(
+                        Image(decorative: staticImage, scale: model.displayScale),
+                        in: CGRect(origin: .zero, size: size)
                     )
-                    let handles = model.controller.transformHandles()
-                    InteractiveRenderer.render(
-                        selectionBounds: model.controller.selectionBounds,
-                        handles: handles.filter { $0.key != .rotation }.map(\.value),
-                        rotationHandle: handles[.rotation],
-                        selectionRect: model.controller.selectionRect,
-                        in: cg, viewport: model.viewport, size: size,
-                        snapLinesX: model.controller.snapLinesX,
-                        snapLinesY: model.controller.snapLinesY,
-                        linearPoints: model.linearOverlay.points,
-                        linearMidpoints: model.linearOverlay.midpoints,
-                        cropFrame: model.cropOverlay?.frame,
-                        cropHandles: model.cropOverlay?.handles ?? []
-                    )
+                    context.withCGContext { cg in model.renderDynamicOverlay(into: cg, size: size) }
+                } else {
+                    context.withCGContext { cg in model.renderFull(into: cg, size: size) }
                 }
             }
-            .onAppear { model.canvasSize = geo.size }
+            .onAppear { model.canvasSize = geo.size; model.displayScale = displayScale }
+            .onChange(of: displayScale) { _, scale in model.displayScale = scale }
             .onChange(of: geo.size) { _, newSize in model.canvasSize = newSize }
         }
         .accessibilityIdentifier("excalidraw-canvas")
