@@ -55,6 +55,8 @@ public final class SceneRenderer {
     }
 
     private var theme: Theme = .light
+    /// Extra scene-unit margin so wide strokes near the viewport edge aren't culled.
+    private let cullingMargin = 100.0
 
     /// Parse a colour string and apply the current theme filter.
     private func themed(_ string: String) -> CGColor {
@@ -90,7 +92,14 @@ public final class SceneRenderer {
             frameBounds[element.id] = CGRect(x: b.x, y: b.y, width: b.width, height: b.height)
         }
 
-        for element in scene.visibleElements {
+        // Cull off-screen elements. Frame *bounds* are kept above regardless, so
+        // an on-screen child still clips to a frame whose border is off-screen.
+        let topLeft = viewport.viewToScene(Point(0, 0))
+        let bottomRight = viewport.viewToScene(Point(size.width, size.height))
+        let visibleRegion = BoundingBox(
+            minX: topLeft.x, minY: topLeft.y, maxX: bottomRight.x, maxY: bottomRight.y
+        )
+        for element in Culling.visible(scene.visibleElements, in: visibleRegion, margin: cullingMargin) {
             drawElement(element, in: ctx, files: scene.files, frameBounds: frameBounds)
         }
         ctx.restoreGState()
@@ -143,11 +152,34 @@ public final class SceneRenderer {
                 drawDrawable(drawable, base: base, in: ctx)
             }
             drawArrowheads(props, base: base, in: ctx)
+        case .embeddable, .iframe:
+            drawEmbeddablePlaceholder(base: base, in: ctx)
         default:
             if let drawable = shapeCache.drawable(for: element) {
                 drawDrawable(drawable, base: base, in: ctx)
             }
         }
+    }
+
+    /// Placeholder for embeddable/iframe elements (full web embedding is a UI
+    /// concern): a rounded, filled rect with a diagonal cross so the element is
+    /// visible and selectable. Drawn in element-local coordinates.
+    private func drawEmbeddablePlaceholder(base: BaseProperties, in ctx: CGContext) {
+        let rect = CGRect(x: 0, y: 0, width: base.width, height: base.height)
+        let path = CGPath(roundedRect: rect, cornerWidth: 8, cornerHeight: 8, transform: nil)
+        ctx.addPath(path)
+        ctx.setFillColor(themed(base.backgroundColor == "transparent" ? "#f1f3f5" : base.backgroundColor))
+        ctx.fillPath()
+        ctx.addPath(path)
+        ctx.setStrokeColor(themed(base.strokeColor))
+        ctx.setLineWidth(max(base.strokeWidth, 1))
+        ctx.strokePath()
+        // Diagonal cross to signal embedded content.
+        ctx.move(to: CGRect(x: 0, y: 0, width: base.width, height: base.height).origin)
+        ctx.addLine(to: CGPoint(x: base.width, y: base.height))
+        ctx.move(to: CGPoint(x: base.width, y: 0))
+        ctx.addLine(to: CGPoint(x: 0, y: base.height))
+        ctx.strokePath()
     }
 
     private func drawFrame(_ element: ExcalidrawElement, in ctx: CGContext) {

@@ -45,6 +45,39 @@ final class SceneRenderTests: XCTestCase {
         XCTAssertGreaterThan(inked, 200, "expected the scene to ink many pixels")
     }
 
+    func testEmbeddableRendersPlaceholder() {
+        var emb = base("emb", x: 20, y: 20, w: 100, h: 80)
+        emb.strokeColor = "#1e1e1e"
+        let scene = Scene(elements: [ExcalidrawElement(base: emb, kind: .embeddable)])
+        let (w, h) = (140, 120)
+        let ctx = context(width: w, height: h)
+        SceneRenderer().render(scene, in: ctx, viewport: Viewport(), size: CGSize(width: w, height: h))
+
+        let (px, total) = rgb(ctx, width: w, height: h)
+        var inked = 0
+        for i in stride(from: 0, to: total, by: 4) where !(px[i] == 255 && px[i + 1] == 255 && px[i + 2] == 255) {
+            inked += 1
+        }
+        XCTAssertGreaterThan(inked, 200, "embeddable should render a visible placeholder")
+    }
+
+    func testOffScreenElementIsCulled() {
+        // A far-away element must not ink the viewport.
+        var far = base("far", x: 100_000, y: 100_000, w: 100, h: 80); far.backgroundColor = "#ff0000"
+        far.fillStyle = .solid
+        let scene = Scene(elements: [ExcalidrawElement(base: far, kind: .rectangle)])
+        let (w, h) = (200, 160)
+        let ctx = context(width: w, height: h)
+        SceneRenderer().render(scene, in: ctx, viewport: Viewport(), size: CGSize(width: w, height: h))
+
+        let (px, total) = rgb(ctx, width: w, height: h)
+        var inked = 0
+        for i in stride(from: 0, to: total, by: 4) where !(px[i] == 255 && px[i + 1] == 255 && px[i + 2] == 255) {
+            inked += 1
+        }
+        XCTAssertEqual(inked, 0, "off-screen element should be culled")
+    }
+
     func testSolidFillProducesFillColoredPixels() {
         var rect = base("r", x: 10, y: 10, w: 100, h: 80)
         rect.backgroundColor = "#ff0000"
