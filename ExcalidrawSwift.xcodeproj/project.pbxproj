@@ -28,10 +28,10 @@
 /* Begin PBXFileReference section */
 		15E1A9EAB0F2CFE2960655AE /* ExcalidrawApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExcalidrawApp.swift; sourceTree = "<group>"; };
 		253BD78B90B09B251AE6DDA8 /* excalidraw-swift */ = {isa = PBXFileReference; lastKnownFileType = folder; name = "excalidraw-swift"; path = .; sourceTree = SOURCE_ROOT; };
-		3349E74A0542B72D9CD8FE27 /* ExcalidrawApp.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = ExcalidrawApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		3349E74A0542B72D9CD8FE27 /* ExcalidrawApp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ExcalidrawApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		661DF4DF2B7A007A864DFD01 /* SmokeUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SmokeUITests.swift; sourceTree = "<group>"; };
 		B6AC1B0B22AD9A2E10F2FB35 /* ExcalidrawAppUITests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = ExcalidrawAppUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
-		F04B3645468416DBC8FE24BA /* sample.excalidraw */ = {isa = PBXFileReference; path = sample.excalidraw; sourceTree = "<group>"; };
+		F04B3645468416DBC8FE24BA /* sample.excalidraw */ = {isa = PBXFileReference; lastKnownFileType = text; path = sample.excalidraw; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -243,6 +243,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 2C69VJZSNR;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -405,6 +406,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 2C69VJZSNR;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;

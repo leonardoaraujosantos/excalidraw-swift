@@ -186,6 +186,22 @@ final class EditorModelTests: XCTestCase {
         XCTAssertEqual(m2.controller.scene.visibleElements.count, 1)
     }
 
+    func testLibraryAddAndStamp() {
+        let m = EditorModel()
+        m.canvasSize = CGSize(width: 400, height: 400)
+        m.select(tool: .rectangle)
+        draw(m, from: CGPoint(x: 0, y: 0), to: CGPoint(x: 50, y: 50))
+        m.controller.selectAll()
+        m.addSelectionToLibrary()
+        XCTAssertEqual(m.library.count, 1)
+        XCTAssertNotNil(m.libraryThumbnail(0))
+
+        let before = m.controller.scene.visibleElements.count
+        m.stampLibraryItem(0)
+        XCTAssertEqual(m.controller.scene.visibleElements.count, before + 1)
+        XCTAssertFalse(m.showLibrary)
+    }
+
     func testThemeAndZenToggles() {
         let m = EditorModel()
         XCTAssertEqual(m.theme, .light)

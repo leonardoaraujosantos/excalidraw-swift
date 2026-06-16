@@ -1,13 +1,20 @@
 #!/usr/bin/env bash
 #
 # Runs the SwiftPM test suite with coverage and fails if total line coverage
-# for our own source targets falls below THRESHOLD. Test files and external
-# dependencies are excluded from the measurement.
+# for our own source targets falls below THRESHOLD.
+#
+# Excluded from the measurement: tests, external deps, and pure SwiftUI `*View`
+# files. SwiftUI view bodies are declarative and exercised by the XCUITest on
+# the simulator (the `app` CI job), not by `swift test`; measuring unit-coverage
+# on them distorts the metric. View MODELS (e.g. EditorModel) are logic and ARE
+# measured.
 #
 # Usage: scripts/coverage.sh [threshold]   (default 90)
 set -euo pipefail
 
 THRESHOLD="${1:-90}"
+# Files excluded from unit-coverage (see note above).
+IGNORE='(Tests|\.build|checkouts)/|View\.swift$'
 
 echo "==> Running tests with coverage"
 swift test --enable-code-coverage >/dev/null
@@ -28,7 +35,7 @@ echo "==> Computing coverage (threshold ${THRESHOLD}%)"
 PERCENT="$(xcrun llvm-cov report \
   "${TEST_BIN}" \
   -instr-profile "${PROFDATA}" \
-  -ignore-filename-regex='(Tests|\.build|checkouts)/' \
+  -ignore-filename-regex="${IGNORE}" \
   2>/dev/null | awk '/^TOTAL/ { gsub(/%/,"",$10); print $10 }')"
 
 echo "Total line coverage: ${PERCENT}%"
@@ -37,7 +44,7 @@ echo "Total line coverage: ${PERCENT}%"
 xcrun llvm-cov report \
   "${TEST_BIN}" \
   -instr-profile "${PROFDATA}" \
-  -ignore-filename-regex='(Tests|\.build|checkouts)/' \
+  -ignore-filename-regex="${IGNORE}" \
   2>/dev/null || true
 
 awk -v p="${PERCENT}" -v t="${THRESHOLD}" 'BEGIN {

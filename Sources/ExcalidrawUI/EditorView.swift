@@ -45,6 +45,42 @@ public struct EditorView: View {
         }
         .onChange(of: photoItem) { _, item in loadPhoto(item) }
         .sheet(isPresented: $model.showCommandPalette) { commandPalette }
+        .sheet(isPresented: $model.showLibrary) { librarySheet }
+    }
+
+    private var librarySheet: some View {
+        NavigationStack {
+            ScrollView {
+                LazyVGrid(columns: [GridItem(.adaptive(minimum: 90))], spacing: 12) {
+                    ForEach(Array(model.library.enumerated()), id: \.offset) { index, _ in
+                        Button { model.stampLibraryItem(index) } label: {
+                            Group {
+                                if let cg = model.libraryThumbnail(index) {
+                                    Image(decorative: cg, scale: 1).resizable().scaledToFit()
+                                } else {
+                                    Image(systemName: "square.on.square")
+                                }
+                            }
+                            .frame(width: 90, height: 90)
+                            .background(Color.gray.opacity(0.1))
+                            .clipShape(RoundedRectangle(cornerRadius: 8))
+                        }
+                        .accessibilityIdentifier("library-item-\(index)")
+                    }
+                }
+                .padding()
+                if model.library.isEmpty {
+                    Text("Select elements and tap “Add” to build your library.")
+                        .foregroundStyle(.secondary).padding()
+                }
+            }
+            .navigationTitle("Library")
+            .toolbar {
+                Button("Add") { model.addSelectionToLibrary() }
+                    .accessibilityIdentifier("library-add")
+                Button("Done") { model.showLibrary = false }
+            }
+        }
     }
 
     // MARK: Toolbar
@@ -210,6 +246,8 @@ public struct EditorView: View {
             Button { model.toggleSnap() } label: {
                 Image(systemName: model.snapEnabled ? "ruler.fill" : "ruler")
             }.accessibilityIdentifier("snap-toggle")
+            Button { model.showLibrary = true } label: { Image(systemName: "books.vertical") }
+                .accessibilityIdentifier("library")
             Button { model.showCommandPalette = true } label: { Image(systemName: "command") }
                 .accessibilityIdentifier("command-palette")
             Button { model.toggleTheme() } label: {

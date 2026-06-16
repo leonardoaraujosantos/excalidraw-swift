@@ -303,6 +303,33 @@ public final class EditorModel: ObservableObject {
         revision += 1
     }
 
+    // MARK: Library
+
+    @Published public var library: [[ExcalidrawElement]] = []
+    @Published public var showLibrary = false
+
+    /// Add the current selection to the library as a reusable item.
+    public func addSelectionToLibrary() {
+        let elements = controller.selectedElements
+        guard !elements.isEmpty else { return }
+        library.append(elements)
+    }
+
+    /// Stamp library item `index` near the centre of the canvas.
+    public func stampLibraryItem(_ index: Int) {
+        guard library.indices.contains(index) else { return }
+        let center = viewport.viewToScene(Point(canvasSize.width / 2, canvasSize.height / 2))
+        controller.insertLibraryItem(library[index], at: center)
+        showLibrary = false
+        revision += 1
+    }
+
+    /// A thumbnail of library item `index` for the panel.
+    public func libraryThumbnail(_ index: Int) -> CGImage? {
+        guard library.indices.contains(index) else { return nil }
+        return Exporter.cgImage(ExcalidrawModel.Scene(elements: library[index]), options: .init(scale: 1, padding: 6))
+    }
+
     // MARK: Linear point editing
 
     /// Enter point-edit mode for a line/arrow at a view point (e.g. double-tap).

@@ -30,7 +30,7 @@ public enum Exporter {
         return data as Data
     }
 
-    static func cgImage(_ scene: Scene, options: Options) -> CGImage? {
+    public static func cgImage(_ scene: Scene, options: Options = Options()) -> CGImage? {
         guard let bounds = ElementGeometry.commonBounds(scene.visibleElements) else { return nil }
         let scale = options.scale
         let padding = options.padding
