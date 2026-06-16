@@ -45,6 +45,11 @@
             guard let touch = touches.first else { return }
             if touch.type == .pencil { pencilActive = true }
             guard accept(touch) else { return }
+            // Double-tap enters line/arrow point-editing.
+            if touch.tapCount == 2 {
+                model?.beginLinearEdit(at: touch.location(in: self))
+                return
+            }
             forward(.down, touch)
         }
 

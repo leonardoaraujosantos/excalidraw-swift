@@ -22,6 +22,8 @@ public enum InteractiveRenderer {
         size: CGSize = .zero,
         snapLinesX: [Double] = [],
         snapLinesY: [Double] = [],
+        linearPoints: [Point] = [],
+        linearMidpoints: [Point] = [],
         handleSizePx: Double = 8
     ) {
         ctx.saveGState()
@@ -73,6 +75,21 @@ public enum InteractiveRenderer {
             for handle in handles {
                 drawSquareHandle(handle, size: handleSize, in: ctx)
             }
+        }
+
+        // Linear point-edit handles: filled circles at points, hollow at midpoints.
+        for midpoint in linearMidpoints {
+            drawCircleHandle(midpoint, size: handleSize * 0.8, in: ctx)
+        }
+        for point in linearPoints {
+            let rect = CGRect(
+                x: point.x - handleSize / 2,
+                y: point.y - handleSize / 2,
+                width: handleSize,
+                height: handleSize
+            )
+            ctx.setFillColor(accent)
+            ctx.fillEllipse(in: rect)
         }
     }
 

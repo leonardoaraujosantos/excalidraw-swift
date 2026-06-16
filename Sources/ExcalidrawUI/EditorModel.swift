@@ -303,6 +303,14 @@ public final class EditorModel: ObservableObject {
         revision += 1
     }
 
+    // MARK: Linear point editing
+
+    /// Enter point-edit mode for a line/arrow at a view point (e.g. double-tap).
+    public func beginLinearEdit(at viewPoint: CGPoint) {
+        let scenePoint = viewport.viewToScene(Point(viewPoint.x, viewPoint.y))
+        if controller.beginLinearEdit(at: scenePoint) { revision += 1 }
+    }
+
     // MARK: Text editing
 
     func beginTextEditing(at viewPoint: CGPoint, scenePoint: Point) {
