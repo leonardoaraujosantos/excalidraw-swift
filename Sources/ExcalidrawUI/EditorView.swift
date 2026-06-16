@@ -171,7 +171,9 @@ public struct EditorView: View {
                         snapLinesX: model.controller.snapLinesX,
                         snapLinesY: model.controller.snapLinesY,
                         linearPoints: model.controller.linearEditHandles()?.points ?? [],
-                        linearMidpoints: model.controller.linearEditHandles()?.midpoints ?? []
+                        linearMidpoints: model.controller.linearEditHandles()?.midpoints ?? [],
+                        cropFrame: model.cropOverlay?.frame,
+                        cropHandles: model.cropOverlay?.handles ?? []
                     )
                 }
             }

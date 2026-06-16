@@ -138,6 +138,21 @@ final class EditorModelTests: XCTestCase {
         XCTAssertEqual(m.controller.scene.files.count, 1)
     }
 
+    func testDoubleTapImageEntersCropOverlay() throws {
+        // 1×1 PNG.
+        let payload = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=="
+        let data = try XCTUnwrap(Data(base64Encoded: payload))
+        let m = EditorModel()
+        m.insertImage(data: data, mimeType: "image/png", viewSize: CGSize(width: 400, height: 400))
+        let image = try XCTUnwrap(m.controller.scene.visibleElements.first)
+        // Double-tap the image centre (scene == view at identity viewport).
+        let center = CGPoint(x: image.base.x + image.base.width / 2, y: image.base.y + image.base.height / 2)
+        m.beginEditMode(at: center)
+        XCTAssertEqual(m.controller.editingCropID, image.id)
+        XCTAssertNotNil(m.cropOverlay)
+        XCTAssertEqual(m.cropOverlay?.handles.count, 8)
+    }
+
     func testExportSVG() {
         let m = EditorModel()
         m.select(tool: .rectangle)

@@ -1,4 +1,5 @@
 import ExcalidrawEditor
+import ExcalidrawGeometry
 import ExcalidrawMath
 import ExcalidrawModel
 import ExcalidrawRender
@@ -393,12 +394,30 @@ public final class EditorModel: ObservableObject {
         return Exporter.cgImage(ExcalidrawModel.Scene(elements: library[index]), options: .init(scale: 1, padding: 6))
     }
 
-    // MARK: Linear point editing
+    // MARK: Linear / crop editing
 
-    /// Enter point-edit mode for a line/arrow at a view point (e.g. double-tap).
-    public func beginLinearEdit(at viewPoint: CGPoint) {
+    /// Enter an edit mode at a view point (e.g. double-tap): point-editing for a
+    /// line/arrow, or crop mode for an image.
+    public func beginEditMode(at viewPoint: CGPoint) {
         let scenePoint = viewport.viewToScene(Point(viewPoint.x, viewPoint.y))
-        if controller.beginLinearEdit(at: scenePoint) { revision += 1 }
+        if controller.beginLinearEdit(at: scenePoint) { revision += 1; return }
+        guard let hit = controller.imageHit(at: scenePoint),
+              let image = ImageDecoder.decode(dataURL: hit.dataURL) else { return }
+        if controller.beginCropEdit(
+            id: hit.id, naturalWidth: Double(image.width), naturalHeight: Double(image.height)
+        ) { revision += 1 }
+    }
+
+    /// Back-compat alias retained for callers/tests; forwards to `beginEditMode`.
+    public func beginLinearEdit(at viewPoint: CGPoint) {
+        beginEditMode(at: viewPoint)
+    }
+
+    /// The crop frame and its handle positions (scene coords) when an image is
+    /// in crop mode, for the overlay.
+    public var cropOverlay: (frame: BoundingBox, handles: [Point])? {
+        guard let frame = controller.cropFrame(), let handles = controller.cropEditHandles() else { return nil }
+        return (frame, handles)
     }
 
     // MARK: Text editing

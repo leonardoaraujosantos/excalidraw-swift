@@ -24,6 +24,8 @@ public enum InteractiveRenderer {
         snapLinesY: [Double] = [],
         linearPoints: [Point] = [],
         linearMidpoints: [Point] = [],
+        cropFrame: BoundingBox? = nil,
+        cropHandles: [Point] = [],
         handleSizePx: Double = 8
     ) {
         ctx.saveGState()
@@ -73,6 +75,16 @@ public enum InteractiveRenderer {
                 drawCircleHandle(rotationHandle, size: handleSize, in: ctx)
             }
             for handle in handles {
+                drawSquareHandle(handle, size: handleSize, in: ctx)
+            }
+        }
+
+        // Crop frame: a solid border around the image with square handles.
+        if let cropFrame {
+            ctx.setStrokeColor(accent)
+            ctx.setLineWidth(lineWidth * 2)
+            ctx.stroke(cgRect(cropFrame))
+            for handle in cropHandles {
                 drawSquareHandle(handle, size: handleSize, in: ctx)
             }
         }

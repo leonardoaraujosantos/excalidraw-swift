@@ -45,9 +45,9 @@
             guard let touch = touches.first else { return }
             if touch.type == .pencil { pencilActive = true }
             guard accept(touch) else { return }
-            // Double-tap enters line/arrow point-editing.
+            // Double-tap enters line/arrow point-editing or image crop mode.
             if touch.tapCount == 2 {
-                model?.beginLinearEdit(at: touch.location(in: self))
+                model?.beginEditMode(at: touch.location(in: self))
                 return
             }
             forward(.down, touch)

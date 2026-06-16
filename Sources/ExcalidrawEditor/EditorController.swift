@@ -30,6 +30,21 @@ public final class EditorController {
     /// The line/arrow currently in point-edit mode (`nil` when not editing).
     public private(set) var editingLinearID: String?
 
+    /// The image currently in crop mode (`nil` when not cropping), plus the
+    /// natural pixel size supplied by the UI when entering the mode.
+    public internal(set) var editingCropID: String?
+    var cropNaturalSize: (width: Double, height: Double)?
+    /// In-flight crop handle drag (captured at pointer-down), separate from the
+    /// main interaction enum so the crop code can live in an extension.
+    var cropDrag: CropDrag?
+
+    struct CropDrag {
+        let handle: TransformHandle
+        let startBox: BoundingBox
+        let startCrop: ImageCrop
+        let fullBox: BoundingBox
+    }
+
     let nextID: () -> String
     let nextSeed: () -> Int
 
@@ -89,7 +104,8 @@ public final class EditorController {
     /// Handle positions for the current selection, shown by the overlay when the
     /// selection tool is active. Suppressed during line point-editing.
     public func transformHandles() -> [TransformHandle: Point] {
-        guard editingLinearID == nil, activeTool == .selection, let bounds = selectionBounds else { return [:] }
+        guard editingLinearID == nil, editingCropID == nil, activeTool == .selection,
+              let bounds = selectionBounds else { return [:] }
         return Transform.handlePositions(for: bounds, rotationOffset: rotationOffset)
     }
 
@@ -194,6 +210,8 @@ public final class EditorController {
 
     public func pointerDown(_ event: PointerEvent) {
         selectionRect = nil
+        // Crop mode for an image takes priority.
+        if editingCropID != nil, handleCropEditDown(event) { return }
         // Point-edit mode for a line/arrow takes priority.
         if editingLinearID != nil, handleLinearEditDown(event) { return }
         switch activeTool {
@@ -212,6 +230,7 @@ public final class EditorController {
     }
 
     public func pointerMove(_ event: PointerEvent) {
+        if cropDrag != nil { moveCropDrag(to: event.scenePoint); return }
         switch interaction {
         case let .creating(id, origin, _):
             updateCreating(id: id, origin: origin, to: event.scenePoint)
@@ -264,6 +283,11 @@ public final class EditorController {
     }
 
     public func pointerUp(_ event: PointerEvent) {
+        if cropDrag != nil {
+            cropDrag = nil
+            store.commit()
+            return
+        }
         switch interaction {
         case let .creating(id, _, moved):
             finishCreating(id: id, moved: moved)
@@ -302,6 +326,7 @@ public final class EditorController {
     public func setTool(_ tool: Tool) {
         activeTool = tool
         editingLinearID = nil
+        exitCropEdit()
     }
 
     public func selectAll() {
@@ -620,7 +645,7 @@ public final class EditorController {
         selectedIDs.formIntersection(live)
     }
 
-    private func handleHitRadius(_ type: PointerType) -> Double {
+    func handleHitRadius(_ type: PointerType) -> Double {
         let px: Double = switch type {
         case .touch: 28
         case .pen: 16
