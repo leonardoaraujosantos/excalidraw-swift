@@ -1,0 +1,25 @@
+{
+  "name": "@xs/render",
+  "version": "0.0.0",
+  "description": "Canvas2D scene renderer, rough.js drawables, and SVG/PNG export — ported from ExcalidrawRender.",
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "build": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@xs/geometry": "workspace:*",
+    "@xs/math": "workspace:*",
+    "@xs/model": "workspace:*",
+    "perfect-freehand": "^1.2.2",
+    "roughjs": "^4.6.6"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.2"
+  }
+}

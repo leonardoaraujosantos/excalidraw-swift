@@ -14,7 +14,7 @@ web/
 │   ├── math/      @xs/math — points, vectors, angles, curves, geometry  ✅ T0
 │   ├── model/     @xs/model — element schema, scene, .excalidraw codecs ✅ T1
 │   ├── geometry/  @xs/geometry — bounds, hit-test, snapping, frames     🟡 T2
-│   ├── render/    @xs/render — Canvas2D renderer, export                  (T3)
+│   ├── render/    @xs/render — Canvas2D renderer, rough.js, SVG/PNG     🟡 T3
 │   ├── editor/    @xs/editor — tools, selection, generators, smart        (T4)
 │   ├── svelte/    @xs/svelte — Svelte 5 runes store + components          (T5)
 │   └── protocol/  @xs/protocol — collaboration wire schema               (T7)
@@ -50,3 +50,11 @@ pnpm lint          # biome
   cardinal `Heading`s, viewport culling, dirty regions, frame containment,
   object + gap snapping, and the Snap-to-Shape `ShapeGenerator`. 48 tests.
   Still to port: the elbow-arrow A\* router and the freehand shape recognizer.
+- **T3 — Rendering (in progress):** `@xs/render` ported from `ExcalidrawRender`
+  — `Viewport`, rough.js option builder + element drawables (via the real
+  `roughjs`), op-set → SVG-path / canvas-path serialization, a Canvas2D
+  `renderScene` (drawables, perfect-freehand freedraw, text, frames, viewport
+  culling), full **SVG export**, and **PNG scene-embed** round-trip
+  (`tEXt` chunk + CRC-32). 27 tests, incl. the renderer verified against a
+  recording mock 2D context. Still to port: the interactive overlay and the
+  PNG rasterizer (needs a real/headless canvas).
