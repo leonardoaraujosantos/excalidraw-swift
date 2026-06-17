@@ -147,32 +147,26 @@ Legend: 🎯 milestone deliverable · 🧪 test focus · ⚠️ risk/hard part.
 
 ## Known gaps & deferred items
 
-The single source of truth for what's **not** yet implemented, kept in sync with the code. Phases 0–7 + tables/charts + Phase 7.5 rendering acceleration are complete (534 tests, ~94% logic coverage, CI green); everything below is deliberately deferred, not forgotten.
+The single source of truth for what's **not** yet implemented, kept in sync with the code. Phases 0–7 + tables/charts + Phase 7.5 rendering acceleration are complete, and most of the original long tail has since shipped (Mermaid, embeddables, PNG re-open, pickers, laser/eraser, fonts infra, Apple Pencil, Files/autosave — see **Recently closed** below). 595 tests, ~92% logic coverage, CI green; everything still listed is deliberately deferred, not forgotten.
 
-**Major features**
+**Still deferred**
 - **Collaboration & cloud** (Phase 8) — real-time multiplayer, presence, cursors, follow mode. Not started; the data model (deltas, fractional indices, version nonces) is built collab-ready.
-- **Mermaid → diagram** — no text→diagram parser yet. Output mapping is trivial (reuses nodes + bound elbow arrows); the work is the parser (Swift flowchart-subset, or JSC-embedded `mermaid.js` for full coverage).
-- **Embeddables / iframes** — render as labelled placeholders only; no live `WKWebView` embedding, URL allow-list, or interaction (UI/security work).
-
-**Rendering & performance** — planned as **Phase 7.5** (above)
-- **Retained-layer / Metal renderer** — ✅ delivered in Phase 7.5: Stage B static/dynamic layer split, Stage C gesture snapshot + crisp zoom-in, and Stage D a runtime-selectable Metal GPU backend (`ExcalidrawMetal`) behind the CG fallback, plus the follow-up tiers that moved shapes/freedraw/**dashed strokes/images** onto the GPU and wired a direct-to-`CAMetalLayer` hybrid into the editor (see Phase 7.5 above). Remaining nuance by design: **text** stays on the Core Graphics overlay (a fixed-size glyph atlas would pixelate at zoom; SDF GPU text is a future option), and the GPU pass repaints the full viewport (ignores the incremental-redraw `clip`).
-- **Golden-image render tests** — ✅ committed pixel references (`Tests/ExcalidrawRenderTests/Golden/`) added in Stage A and used as the cross-renderer regression net.
-
-**Fidelity**
-- **Fonts** — bundled Excalidraw fonts (Excalifont/Virgil/etc.) + exact Core Text metrics; currently maps to system fallbacks (Bradley Hand / Helvetica / Menlo).
+- **Bundled font files** — the loading + family mapping is wired (`FontRegistry`), but the licensed Excalidraw font files (Excalifont/Virgil/Comic Shanns…) aren't committed; dropping them into the app bundle takes effect, otherwise text uses system fallbacks (Bradley Hand / Helvetica / Menlo). Exact Core Text metric parity also remains.
 - **Hand-drawn parity** — hachure fill and perfect-freehand outlines are visually faithful but not line-identical to upstream (scan-line/edge handling differs).
+- **GPU text** — text stays on the Core Graphics overlay by design (a fixed-size glyph atlas pixelates at zoom; SDF GPU text is a future option); the GPU pass repaints the full viewport (ignores the incremental-redraw `clip`).
+- **Full `DocumentGroup` browser-on-launch** — the app uses Files-app open/save + autosave + recents instead, to keep the single-editor shell; a browser-on-launch would replace it.
 
-**UI polish**
-- **Custom color picker** + eyedropper — only the 5 preset stroke/fill swatches today.
-- **Arrowhead-type picker** — the model stores start/end arrowheads; no UI to change them.
-- **Files-app `DocumentGroup` browser + autosave + recents** — the persistence core (`SceneDocument`) is done and tested; not wired to a document browser.
-- **Laser pointer** and animated eraser trail.
-
-**Apple Pencil**
-- **Hover preview** (17.5+) and **Pencil Pro** squeeze/roll. Pressure, tilt, palm rejection, and the hold-to-snap dwell are implemented.
-
-**Persistence**
-- **PNG scene-embed round-trip** — exporting a PNG with embedded scene metadata so it can be re-opened as an editable drawing.
+**Recently closed** (were deferred, now shipped)
+- ✅ **Arrowhead-type picker** (start/end) and **custom color picker** (native iOS picker includes the screen eyedropper).
+- ✅ **Laser pointer** + animated eraser trail (fading-trail overlay).
+- ✅ **PNG scene-embed round-trip** — exported PNGs carry the scene (a `tEXt` chunk) and re-open as editable drawings.
+- ✅ **Mermaid → diagram** — `MermaidParser` (flowchart subset → shapes + bound labels + arrows, layered layout).
+- ✅ **Live embeddables** — `WKWebView` over allow-listed hosts (`EmbedAllowList`), interactive except under the selection tool.
+- ✅ **Files open/save + autosave + recents** — `fileImporter`/`fileExporter` + a `DocumentStore` autosave slot and security-scoped recents.
+- ✅ **Font-loading infrastructure** — `FontRegistry` registers bundled fonts + maps families (assets pending).
+- ✅ **Apple Pencil hover** (17.5+) + **Pencil Pro squeeze** (`UIHoverGestureRecognizer` + `UIPencilInteraction`).
+- ✅ **Retained-layer / Metal renderer** — Phase 7.5 (above): layered split, gesture snapshots, runtime-selectable Metal GPU backend with the direct-to-`CAMetalLayer` editor hybrid.
+- ✅ **Golden-image render tests** — committed pixel references (`Tests/ExcalidrawRenderTests/Golden/`).
 
 **Collab-oriented model internals** (built lean until Phase 8)
 - Full rocicorp fractional-indexing edge cases + legacy binding-v1 migration; property-level partial deltas & AppState history.

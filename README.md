@@ -11,19 +11,21 @@ A native iOS (iPhone + iPad) port of [Excalidraw](https://excalidraw.com) in Swi
 - **Editing:** select/multi-select, group-aware selection, move/resize/rotate, **font scales on resize**, undo/redo, copy/paste, z-order, align, flip, group/ungroup, lock, duplicate.
 - **Smart features:** object + gap snapping, arrow↔shape binding, **freehand shape recognition** ("Snap to Shape": rectangle/ellipse/diamond/triangle/line/pentagon/hexagon/star/heart/cloud/speech-bubble, hold-to-snap), flowchart node spawning, interactive image crop, element hyperlinks.
 - **Platform:** size-class-adaptive iPhone/iPad UI, dark mode, zen mode, command palette, hardware-keyboard shortcuts, two-finger pan/zoom, palm rejection, localization infra (en/es/ar incl. RTL).
-- **Files:** `.excalidraw` / `.excalidrawlib` round-trip; PNG & SVG export; on-disk library.
+- **Generators & embeds:** **Mermaid → diagram** (paste a flowchart), **live web embeddables** (`WKWebView` behind a host allow-list), tables, charts, sticky notes, flowchart nodes.
+- **Tools & polish:** arrowhead-type picker, custom color picker (+ system eyedropper), **laser pointer** + animated eraser trail, Apple Pencil hover (17.5+) & Pencil Pro squeeze.
+- **Files:** `.excalidraw` / `.excalidrawlib` round-trip; Files-app open/save + **autosave + recents**; **PNG scene-embed round-trip** (re-open a drawing from its exported PNG); PNG & SVG export; on-disk library.
 
 <a name="known-gaps"></a>
 ## Known gaps (not yet implemented)
-Tracked deferrals, in sync with the code. Full detail in [docs/ROADMAP.md](docs/ROADMAP.md#known-gaps--deferred-items).
+Tracked deferrals, in sync with the code. Full detail in [docs/ROADMAP.md](docs/ROADMAP.md#known-gaps--deferred-items). Most of the original long tail (Mermaid, embeddables, PNG re-open, pickers, laser/eraser, fonts infra, Pencil, Files/autosave) is now shipped — see [Recently closed](#recently-closed).
 - **Collaboration / cloud** (Phase 8) — multiplayer, presence, cursors (data model is collab-ready).
-- **Mermaid → diagram** — the text→elements parser isn't built (tables/charts shipped).
-- **Embeddables / iframes** — render as labelled placeholders; no live `WKWebView` embedding.
-- **Rendering** — ✅ delivered as [Phase 7.5](docs/ROADMAP.md#phase-75--rendering-acceleration--performance): layered static/dynamic split, gesture snapshots, and a runtime-selectable **Metal GPU backend** (1.9–2.9× faster than CPU on device for all-component scenes). Remaining nuance: **text** stays on the Core Graphics overlay by design (a GPU glyph atlas would pixelate at zoom; SDF GPU text is a possible future option), and the GPU path doesn't use the incremental-redraw `clip` (it repaints the full viewport — idempotent, perf-only).
-- **Fidelity** — bundled Excalidraw fonts + exact text metrics (uses system fallbacks); hachure fill and perfect-freehand outlines are visually faithful, not line-identical; no committed golden-image references.
-- **UI polish** — custom/eyedropper color picker (only preset swatches), arrowhead-type picker, Files-app `DocumentGroup` browser + autosave, laser pointer & animated eraser trail.
-- **Apple Pencil** — hover preview (17.5+) and Pencil Pro squeeze/roll.
-- **Persistence** — PNG scene-embed round-trip (re-open a scene from an exported PNG).
+- **Fidelity** — the **bundled Excalidraw font files** themselves aren't committed (loading + family mapping is wired, so dropping the `.ttf/.otf` into the app bundle takes effect; until then text uses system fallbacks). Hachure fill and perfect-freehand outlines are visually faithful, not line-identical.
+- **Rendering** — text stays on the Core Graphics overlay by design (a GPU glyph atlas would pixelate at zoom; SDF GPU text is a possible future option); the GPU path repaints the full viewport (ignores the incremental-redraw `clip` — idempotent, perf-only).
+- **Documents** — uses Files-app open/save (`fileImporter`/`fileExporter`) + autosave + recents rather than a full `DocumentGroup` browser-on-launch (which would replace the single-editor shell).
+
+<a name="recently-closed"></a>
+### Recently closed
+Arrowhead-type picker · custom color picker + eyedropper · laser pointer + animated eraser trail · **PNG scene-embed round-trip** (re-open a drawing from an exported PNG) · **Mermaid → diagram** parser · **live `WKWebView` embeddables** (host allow-list) · Files-app open/save + autosave + recents · **font-loading infrastructure** · **Apple Pencil hover** (17.5+) + Pencil Pro squeeze · Metal GPU renderer (Phase 7.5).
 
 ## Design decisions
 - **Rendering:** SwiftUI `Canvas` + Core Graphics (static scene + interactive overlay), with a Swift port of rough.js (`RoughKit`) for the hand-drawn look; an optional Metal GPU backend (`ExcalidrawMetal`) is swappable at runtime behind a `SceneRendering` protocol, with CG as the default and automatic fallback.
