@@ -4,13 +4,18 @@ import ExcalidrawRender
 import PhotosUI
 import SwiftUI
 import UniformTypeIdentifiers
+#if canImport(UIKit)
+    import UIKit
+#elseif canImport(AppKit)
+    import AppKit
+#endif
 
 /// The adaptive single-user editor. The tool/action toolbar sits at the top on
 /// regular widths (iPad) and the bottom on compact widths (iPhone). A footer
 /// carries zoom, theme, zen, and the command palette. Pointer input comes from
 /// `PointerInputView` (raw `UITouch`) on iOS.
 public struct EditorView: View {
-    @StateObject private var model: EditorModel
+    @StateObject var model: EditorModel
     @Environment(\.horizontalSizeClass) private var sizeClass
     @Environment(\.displayScale) private var displayScale
     @State private var exported = false
@@ -23,7 +28,8 @@ public struct EditorView: View {
         (.selection, "cursorarrow"), (.rectangle, "rectangle"), (.diamond, "diamond"),
         (.ellipse, "circle"), (.arrow, "arrow.up.right"), (.line, "line.diagonal"),
         (.freedraw, "scribble"), (.text, "textformat"), (.postit, "note.text"),
-        (.table, "tablecells"), (.frame, "rectangle.dashed"), (.eraser, "eraser"), (.hand, "hand.draw")
+        (.table, "tablecells"), (.frame, "rectangle.dashed"), (.eraser, "eraser"),
+        (.laser, "cursorarrow.rays"), (.hand, "hand.draw")
     ]
     private let palette = ["#1e1e1e", "#e03131", "#2f9e44", "#1971c2", "#f08c00"]
     private let fills = ["transparent", "#ffc9c9", "#b2f2bb", "#a5d8ff", "#ffec99"]
@@ -226,6 +232,7 @@ public struct EditorView: View {
                 .onChange(of: geo.size) { _, newSize in model.canvasSize = newSize }
         }
         .accessibilityIdentifier("excalidraw-canvas")
+        .overlay(trailOverlay)
         .overlay(inputLayer)
         .overlay(textEditor)
         .contextMenu { contextMenuItems }
@@ -296,8 +303,14 @@ public struct EditorView: View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 12) {
                 swatches(palette, selected: model.strokeColor, id: "stroke") { model.setStrokeColor($0) }
+                customColorPicker(
+                    current: model.strokeColor, id: "stroke", default: "#1e1e1e"
+                ) { model.setStrokeColor($0) }
                 Divider().frame(height: 24)
                 swatches(fills, selected: model.backgroundColor, id: "bg") { model.setBackgroundColor($0) }
+                customColorPicker(
+                    current: model.backgroundColor, id: "bg", default: "#a5d8ff"
+                ) { model.setBackgroundColor($0) }
                 if model.backgroundColor != "transparent" {
                     fillStyleControl
                 }
@@ -319,6 +332,7 @@ public struct EditorView: View {
                     }
                     .toggleStyle(.button)
                     .accessibilityIdentifier("elbow-toggle")
+                    arrowheadControls
                 }
                 if exported {
                     Text("Exported").foregroundStyle(.secondary).accessibilityIdentifier("exported-confirmation")
@@ -598,5 +612,21 @@ extension Color {
         let g = Double((value >> 8) & 0xFF) / 255
         let b = Double(value & 0xFF) / 255
         self.init(red: r, green: g, blue: b)
+    }
+
+    /// `#rrggbb` for the custom color picker → model string.
+    var hexString: String {
+        #if canImport(UIKit)
+            var r: CGFloat = 0, g: CGFloat = 0, b: CGFloat = 0, a: CGFloat = 0
+            UIColor(self).getRed(&r, green: &g, blue: &b, alpha: &a)
+            return String(format: "#%02x%02x%02x", Int(r * 255), Int(g * 255), Int(b * 255))
+        #else
+            let resolved = NSColor(self).usingColorSpace(.sRGB) ?? NSColor(self)
+            return String(
+                format: "#%02x%02x%02x",
+                Int(resolved.redComponent * 255), Int(resolved.greenComponent * 255),
+                Int(resolved.blueComponent * 255)
+            )
+        #endif
     }
 }

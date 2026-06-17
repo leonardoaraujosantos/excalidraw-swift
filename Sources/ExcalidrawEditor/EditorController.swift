@@ -406,10 +406,10 @@ public final class EditorController {
         case .line:
             element = ExcalidrawElement(base: base, kind: .line(LinearProperties(points: [Point(0, 0), Point(0, 0)])))
         case .arrow:
-            // Arrows default to an arrowhead on the end.
             let props = ArrowProperties(
                 points: [Point(0, 0), Point(0, 0)],
-                endArrowhead: .arrow,
+                startArrowhead: currentItem.startArrowhead,
+                endArrowhead: currentItem.endArrowhead,
                 elbowed: currentItem.elbowed
             )
             element = ExcalidrawElement(base: base, kind: .arrow(props))

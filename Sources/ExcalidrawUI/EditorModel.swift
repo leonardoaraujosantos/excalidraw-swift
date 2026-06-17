@@ -16,6 +16,8 @@ public final class EditorModel: ObservableObject {
     var renderer: SceneRendering = SceneRenderer()
     /// Core Graphics renderer for the Metal-hybrid text/overlay pass.
     let cgOverlayRenderer = SceneRenderer()
+    /// Ephemeral fading trails for the laser pointer and eraser.
+    public let trail = TrailStore()
     @Published public internal(set) var rendererKind: RendererKind = .coreGraphics
 
     @Published public var viewport: Viewport
@@ -88,27 +90,10 @@ public final class EditorModel: ObservableObject {
     ) {
         let scenePoint = viewport.viewToScene(Point(viewPoint.x, viewPoint.y))
 
-        // The text tool creates + edits text on tap rather than dragging.
-        if activeTool == .text {
-            if phase == .down { beginTextEditing(at: viewPoint, scenePoint: scenePoint) }
-            return
-        }
-
-        // The sticky-note tool drops a note and starts editing its label.
-        if activeTool == .postit {
-            if phase == .down { beginStickyNote(at: viewPoint, scenePoint: scenePoint) }
-            return
-        }
-
-        // The table tool drops a 3×3 grid where tapped.
-        if activeTool == .table {
-            if phase == .down {
-                controller.createTable(at: scenePoint)
-                revertToSelection()
-                revision += 1
-            }
-            return
-        }
+        // Tap-to-create tools (text/post-it/table) and the ephemeral laser
+        // pointer are handled out-of-line; `handlePointerTool` returns true when
+        // it fully handled the event (no element/selection forwarding needed).
+        if handlePointerTool(phase: phase, viewPoint: viewPoint, scenePoint: scenePoint) { return }
 
         let event = PointerEvent(
             scenePoint: scenePoint, phase: phase, type: type,
@@ -582,7 +567,7 @@ public final class EditorModel: ObservableObject {
     }
 
     /// Revert to the selection tool after a one-shot placement (unless locked).
-    private func revertToSelection() {
+    func revertToSelection() {
         if !controller.toolLocked {
             controller.setTool(.selection)
             activeTool = .selection
@@ -691,7 +676,7 @@ public final class EditorModel: ObservableObject {
     }
 
     /// Apply a style change to the current selection as one undo step.
-    private func applyToSelection(_ change: (inout ExcalidrawElement) -> Void) {
+    func applyToSelection(_ change: (inout ExcalidrawElement) -> Void) {
         controller.updateSelected(change)
         revision += 1
     }

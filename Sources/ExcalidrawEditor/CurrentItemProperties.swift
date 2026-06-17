@@ -17,6 +17,9 @@ public struct CurrentItemProperties: Sendable {
     public var elbowed: Bool = false
     /// Give new elements rounded edges/corners (splined lines, rounded rects).
     public var roundEdges: Bool = true
+    /// Default arrowheads for new arrows (start is usually none, end an arrow).
+    public var startArrowhead: Arrowhead?
+    public var endArrowhead: Arrowhead? = .arrow
 
     public init() {}
 

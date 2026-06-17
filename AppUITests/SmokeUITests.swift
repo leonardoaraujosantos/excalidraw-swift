@@ -125,6 +125,25 @@ final class SmokeUITests: XCTestCase {
         XCTAssertTrue(canvas.exists)
     }
 
+    func testLaserAndArrowheadAndColorPicker() {
+        // Arrowhead picker appears with the arrow tool; pick a triangle end.
+        tap("tool-arrow")
+        drag(CGVector(dx: 0.25, dy: 0.3), CGVector(dx: 0.6, dy: 0.4))
+        if app.buttons["arrowhead-end"].waitForExistence(timeout: 3) {
+            app.buttons["arrowhead-end"].tap()
+            app.buttons["arrowhead-end-Triangle"].tap()
+        }
+        // Custom color picker exists in the properties bar.
+        XCTAssertTrue(app.buttons["stroke-color-picker"].exists)
+
+        // Laser pointer: select it and sweep — leaves a fading trail, no element.
+        tap("tool-laser")
+        drag(CGVector(dx: 0.3, dy: 0.5), CGVector(dx: 0.7, dy: 0.6), duration: 0.4)
+        let laser = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
+        laser.name = "laser-trail"; laser.lifetime = .keepAlways; add(laser)
+        XCTAssertEqual(app.state, .runningForeground)
+    }
+
     func testMetalRendererDrawMoveAndZoom() throws {
         let toggle = app.buttons["renderer-toggle"]
         guard toggle.waitForExistence(timeout: 5) else {

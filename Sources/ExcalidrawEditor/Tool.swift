@@ -15,6 +15,7 @@ public enum Tool: String, Sendable, CaseIterable {
     case table
     case frame
     case eraser
+    case laser
     case hand
 
     /// The element kind a shape tool creates, or `nil` for non-creating tools.
@@ -27,7 +28,7 @@ public enum Tool: String, Sendable, CaseIterable {
         case .arrow: .arrow(ArrowProperties())
         case .freedraw: .freedraw(FreedrawProperties())
         case .frame: .frame(name: nil)
-        case .selection, .eraser, .hand, .text, .postit, .table: nil
+        case .selection, .eraser, .laser, .hand, .text, .postit, .table: nil
         }
     }
 
