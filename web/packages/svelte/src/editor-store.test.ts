@@ -210,4 +210,34 @@ describe("EditorStore", () => {
     // Double-click on empty space does nothing.
     expect(store.editBoundTextAt(new Point(5000, 5000))).toBe(false);
   });
+
+  it("double-clicking a line enters point (spline) editing (regression)", () => {
+    const store = new EditorStore();
+    store.selectTool("line");
+    // draw a line from (100,100) to (300,160)
+    store.pointer("down", new Point(100, 100));
+    store.pointer("move", new Point(300, 160));
+    store.pointer("up", new Point(300, 160));
+    const line = store.scene.visibleElements.find((e) => e.type === "line")!;
+    expect(store.isLinearEditing).toBe(false);
+
+    store.selectTool("selection");
+    // double-click on a point along the line enters vertex editing
+    store.doubleClickAt(new Point(line.x, line.y));
+    expect(store.isLinearEditing).toBe(true);
+  });
+
+  it("changing the fill pattern updates the selection and the current item (regression)", () => {
+    const store = new EditorStore();
+    store.selectTool("rectangle");
+    store.pointer("down", new Point(20, 20));
+    store.pointer("move", new Point(120, 90));
+    store.pointer("up", new Point(120, 90));
+    store.controller.selectAll();
+
+    store.setFillStyle("cross-hatch");
+    const rect = store.scene.visibleElements.find((e) => e.type === "rectangle")!;
+    expect(rect.fillStyle).toBe("cross-hatch");
+    expect(store.controller.currentItem.fillStyle).toBe("cross-hatch");
+  });
 });

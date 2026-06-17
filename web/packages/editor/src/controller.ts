@@ -882,11 +882,20 @@ export class EditorController {
 
   private snapshotForMove(): Originals {
     const result = this.snapshotSelected();
+    const add = (el: ExcalidrawElement | undefined): void => {
+      if (el !== undefined) result.set(el.id, el);
+    };
     for (const el of this.selectedElements) {
+      // A move drags the whole group, not just the hit member.
+      for (const id of this.groupSiblings(el.id)) add(this.scene.element(id));
+      // Frames carry their children.
       if (isFrame(el)) {
-        for (const child of frameChildren(el.id, this.scene.visibleElements)) {
-          result.set(child.id, child);
-        }
+        for (const child of frameChildren(el.id, this.scene.visibleElements)) add(child);
+      }
+      // Container-bound text (e.g. a sticky-note label) moves with its container;
+      // otherwise it strands at its old position and inflates the group's bounds.
+      for (const b of el.boundElements ?? []) {
+        if (b.type === "text") add(this.scene.element(b.id));
       }
     }
     return result;

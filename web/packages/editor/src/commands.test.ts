@@ -2,7 +2,7 @@ import { Point } from "@xs/math";
 import { type ExcalidrawElement, Scene, decodeFile, defaultBase } from "@xs/model";
 import { describe, expect, it } from "vitest";
 import { EditorController } from "./controller.js";
-import { makeEditor } from "./test-helpers.js";
+import { drag, makeEditor } from "./test-helpers.js";
 
 function rect(id: string, w = 30, h = 20): ExcalidrawElement {
   return { ...defaultBase(id, { width: w, height: h }), type: "rectangle" };
@@ -125,6 +125,25 @@ describe("sticky notes", () => {
     const text = ec.scene.element(note.text);
     expect(text).toBeDefined();
     if (text?.type === "text") expect(text.text).toBe("");
+  });
+
+  it("moving a sticky note carries its bound text, keeping bounds tight (regression)", () => {
+    const ec = new EditorController();
+    const note = ec.createStickyNote(new Point(100, 100));
+    const text0 = ec.scene.element(note.text)!;
+    // createStickyNote selects only the container; dragging it must still move
+    // the bound text, or the label strands and the group's bounds balloon.
+    drag(ec, new Point(180, 180), new Point(80, 80)); // centre → delta (-100, -100)
+
+    const container = ec.scene.element(note.container)!;
+    const text = ec.scene.element(note.text)!;
+    expect([container.x, container.y]).toEqual([0, 0]);
+    expect([text.x, text.y]).toEqual([text0.x - 100, text0.y - 100]);
+
+    // Selecting the whole group yields a tight box (the container's bounds).
+    ec.selectAll();
+    const b = ec.selectionBounds!;
+    expect([b.minX, b.minY, b.maxX, b.maxY]).toEqual([0, 0, 160, 160]);
   });
 });
 

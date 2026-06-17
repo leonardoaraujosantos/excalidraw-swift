@@ -89,7 +89,7 @@
 
   function onDblClick(e: MouseEvent): void {
     const r = canvas.getBoundingClientRect();
-    store.editBoundTextAt(new Point(e.clientX - r.left, e.clientY - r.top));
+    store.doubleClickAt(new Point(e.clientX - r.left, e.clientY - r.top));
   }
 
   function onWheel(e: WheelEvent): void {

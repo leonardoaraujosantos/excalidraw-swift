@@ -355,6 +355,21 @@ export class EditorStore {
     return true;
   }
 
+  /**
+   * Double-click handler: edit a sticky-note label if one is hit, otherwise
+   * enter linear point ("spline") editing on a hit line/arrow so its vertices
+   * can be dragged and midpoints split.
+   */
+  doubleClickAt(viewPoint: Point): void {
+    if (this.editBoundTextAt(viewPoint)) return;
+    if (this.controller.beginLinearEdit(this.viewport.viewToScene(viewPoint))) this.bump();
+  }
+
+  /** Whether a line/arrow is currently in point-editing mode (for the UI). */
+  get isLinearEditing(): boolean {
+    return this.controller.editingLinearID !== null;
+  }
+
   setEditingText(value: string): void {
     if (this.editingText !== null) this.editingText = { ...this.editingText, value };
   }

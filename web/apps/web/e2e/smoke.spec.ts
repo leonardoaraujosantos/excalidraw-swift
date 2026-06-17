@@ -106,6 +106,86 @@ test("types on-canvas text", async ({ page }) => {
   await shot(page, "04-text");
 });
 
+test("moving a sticky note carries its label and keeps a tight selection", async ({ page }) => {
+  await page.getByTestId("gen-note").click();
+  const editor = page.getByTestId("text-editor");
+  await editor.fill("Leo");
+  await editor.press("Enter");
+  await selectTool(page, "selection");
+
+  const cb = (await page.getByTestId("canvas").boundingBox())!;
+  const c = await read(page, (s) => {
+    const n = s.scene.visibleElements.find((e) => e.type === "rectangle")!;
+    return { x: n.x + n.width / 2, y: n.y + n.height / 2 };
+  });
+  // Drag the note up-left; the bound text must move with it (not strand).
+  await page.mouse.move(cb.x + c.x, cb.y + c.y);
+  await page.mouse.down();
+  await page.mouse.move(cb.x + c.x - 250, cb.y + c.y - 120, { steps: 8 });
+  await page.mouse.up();
+
+  // Re-select the moved note: its group bounds stay tight (160×160), not ballooned.
+  const c2 = await read(page, (s) => {
+    const n = s.scene.visibleElements.find((e) => e.type === "rectangle")!;
+    return { x: n.x + n.width / 2, y: n.y + n.height / 2 };
+  });
+  await page.mouse.move(cb.x + c2.x, cb.y + c2.y);
+  await page.mouse.down();
+  await page.mouse.up();
+  const bounds = await read(page, (s) => s.controller.selectionBounds);
+  expect(bounds!.maxX - bounds!.minX).toBeCloseTo(160, 0);
+  expect(bounds!.maxY - bounds!.minY).toBeCloseTo(160, 0);
+  await shot(page, "07-note-moved");
+});
+
+test("double-clicking a line enters point (spline) editing and drags a vertex", async ({ page }) => {
+  await selectTool(page, "line");
+  await drag(page, { x: 0.2, y: 0.6 }, { x: 0.5, y: 0.72 });
+  expect(await read(page, (s) => s.isLinearEditing)).toBe(false);
+
+  await selectTool(page, "selection");
+  const cb = (await page.getByTestId("canvas").boundingBox())!;
+  // The end vertex in scene coords (== view coords at the default viewport).
+  const end = await read(page, (s) => {
+    const l = s.scene.visibleElements.find((e) => e.type === "line") as
+      | { x: number; y: number; points: [number, number][] }
+      | undefined;
+    const last = l!.points[l!.points.length - 1]!;
+    return { x: l!.x + last[0], y: l!.y + last[1] };
+  });
+  // Double-click the line to enter point editing.
+  await page.mouse.dblclick(cb.x + end.x, cb.y + end.y);
+  expect(await read(page, (s) => s.isLinearEditing)).toBe(true);
+  await page.waitForTimeout(120); // let the canvas poll repaint into point-edit mode
+  await shot(page, "08-line-edit");
+
+  // Drag the end vertex 80px down; the line's last point must change.
+  await page.mouse.move(cb.x + end.x, cb.y + end.y);
+  await page.mouse.down();
+  await page.mouse.move(cb.x + end.x, cb.y + end.y + 80, { steps: 6 });
+  await page.mouse.up();
+  const moved = await read(page, (s) => {
+    const l = s.scene.visibleElements.find((e) => e.type === "line") as { height: number };
+    return l.height;
+  });
+  // The line got taller after pulling the vertex down.
+  expect(moved).toBeGreaterThan(70);
+});
+
+test("the fill-pattern selector changes a shape's fill style", async ({ page }) => {
+  await selectTool(page, "rectangle");
+  await drag(page, { x: 0.3, y: 0.3 }, { x: 0.6, y: 0.6 });
+  // Box-select the rectangle, then switch its fill pattern.
+  await selectTool(page, "selection");
+  await drag(page, { x: 0.2, y: 0.2 }, { x: 0.7, y: 0.7 });
+  await page.getByTestId("fill-style").selectOption("cross-hatch");
+  expect(
+    await read(page, (s) =>
+      s.scene.visibleElements.some((e) => e.type === "rectangle" && e.fillStyle === "cross-hatch"),
+    ),
+  ).toBe(true);
+});
+
 test("the laser pointer paints a trail without creating elements", async ({ page }) => {
   await selectTool(page, "laser");
   await drag(page, { x: 0.3, y: 0.5 }, { x: 0.7, y: 0.6 });

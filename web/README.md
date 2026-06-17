@@ -173,3 +173,13 @@ pnpm --filter excalidraw-web-app e2e                                # screenshot
     ellipse and the filled-rectangle outline (fresh seed, independent of fill),
     with hachure fill bounded to the same op-count magnitude. Render geometry
     can't silently drift between the two implementations.
+  - **T6 slice 5:** three interaction bugs/gaps the feature pass surfaced, fixed
+    with unit + E2E regression coverage: (1) **moving a sticky note stranded its
+    bound text** — the move snapshot didn't expand to group siblings / bound
+    text, so the label stayed behind and the group's bounds ballooned; the move
+    now carries group + bound text; (2) **double-clicking a line/arrow now enters
+    point ("spline") editing** (`doubleClickAt` → `beginLinearEdit`) so vertices
+    drag and midpoints split; (3) a **fill-pattern selector** (hachure /
+    cross-hatch / solid / zigzag) wired to `setFillStyle`. E2E asserts the moved
+    note keeps a tight selection, a line vertex drags, and the pattern change
+    lands on the element.

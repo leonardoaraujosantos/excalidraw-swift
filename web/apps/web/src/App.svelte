@@ -1,5 +1,6 @@
 <script lang="ts">
   import type { Tool } from "@xs/editor";
+  import type { FillStyle } from "@xs/model";
   import { EditorStore } from "@xs/svelte";
   import Canvas from "./lib/Canvas.svelte";
 
@@ -63,6 +64,7 @@
   let backgroundColor = $state("transparent");
   let strokeWidth = $state(2);
   let elbowed = $state(false);
+  let fillStyle = $state<FillStyle>("hachure");
 
   function pick(tool: Tool): void {
     store.selectTool(tool);
@@ -149,6 +151,14 @@
   <section class="props">
     <label>Stroke <input type="color" bind:value={strokeColor} onchange={() => store.setStrokeColor(strokeColor)} /></label>
     <label>Fill <input type="color" bind:value={backgroundColor} onchange={() => store.setBackgroundColor(backgroundColor)} /></label>
+    <label>Pattern
+      <select data-testid="fill-style" bind:value={fillStyle} onchange={() => store.setFillStyle(fillStyle)}>
+        <option value="hachure">Hachure</option>
+        <option value="cross-hatch">Cross-hatch</option>
+        <option value="solid">Solid</option>
+        <option value="zigzag">Zigzag</option>
+      </select>
+    </label>
     <label>Width
       <input type="range" min="1" max="12" bind:value={strokeWidth} onchange={() => store.setStrokeWidth(strokeWidth)} />
     </label>
