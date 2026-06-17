@@ -84,3 +84,8 @@ pnpm lint          # biome
     rectangle/ellipse/diamond/triangle/pentagon/hexagon/star/etc. 5 tests
     ported from ShapeRecognitionTests. Still to port: arrow binding, elbow
     arrows, linear point edit, image-crop drag, flowchart spawning.
+  - **T4 slice 5:** arrow↔shape binding — bind an arrow's endpoints to nearby
+    bindable shapes on creation, register the arrow in the shape's
+    `boundElements`, and re-route bound arrows when their targets move/resize.
+    3 tests ported from BindingTests. Still to port: elbow arrows, linear point
+    edit, image-crop drag, flowchart spawning.

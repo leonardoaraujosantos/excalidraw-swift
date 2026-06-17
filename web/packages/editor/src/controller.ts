@@ -4,14 +4,17 @@ import {
   type RecognizedShape,
   type ShapeRecognition,
   ShapeRecognizer,
+  bindableElementAt,
   commonBounds,
   bounds as elementBounds,
+  fixedPointFor,
   frameChildren,
   frameContaining,
   gapSnap,
   hit,
   isFrame,
   snap as objectSnap,
+  pointForFixedPoint,
 } from "@xs/geometry";
 import { Point } from "@xs/math";
 import {
@@ -148,6 +151,7 @@ export class EditorController {
           for (const original of i.originals.values()) {
             scene.replace(Transform.translate(original, dx, dy));
           }
+          if (this.bindingEnabled) updateBoundArrows(scene, new Set(i.originals.keys()));
         });
         break;
       }
@@ -160,6 +164,7 @@ export class EditorController {
           for (const original of i.originals.values()) {
             scene.replace(Transform.scale(original, i.bounds, next));
           }
+          if (this.bindingEnabled) updateBoundArrows(scene, new Set(i.originals.keys()));
         });
         break;
       }
@@ -472,10 +477,47 @@ export class EditorController {
       );
       this.selectedIDs = new Set();
     } else {
+      if (this.bindingEnabled) this.bindArrowEndpoints(id);
       this.reassignFrameMembership(new Set([id]));
       this.store.commit();
       if (!this.toolLocked) this.activeTool = "selection";
     }
+  }
+
+  /** If the element is an arrow, bind its endpoints to nearby bindable shapes. */
+  bindArrowEndpoints(id: string): void {
+    this.store.modifyScene((scene) => {
+      const arrow = scene.element(id);
+      if (arrow === undefined || arrow.type !== "arrow") return;
+      const first = arrow.points[0];
+      const last = arrow.points[arrow.points.length - 1];
+      if (first === undefined || last === undefined) return;
+      const startGlobal = new Point(arrow.x + first[0], arrow.y + first[1]);
+      const endGlobal = new Point(arrow.x + last[0], arrow.y + last[1]);
+      const others = scene.visibleElements;
+      const exclude = new Set([id]);
+      let { startBinding, endBinding } = arrow;
+
+      const startTarget = bindableElementAt(startGlobal, others, exclude);
+      if (startTarget !== null) {
+        startBinding = {
+          elementId: startTarget.id,
+          fixedPoint: fixedPointFor(startGlobal, elementBounds(startTarget)).toArray(),
+          mode: "orbit",
+        };
+        addBoundArrow(scene, id, startTarget.id);
+      }
+      const endTarget = bindableElementAt(endGlobal, others, exclude);
+      if (endTarget !== null) {
+        endBinding = {
+          elementId: endTarget.id,
+          fixedPoint: fixedPointFor(endGlobal, elementBounds(endTarget)).toArray(),
+          mode: "orbit",
+        };
+        addBoundArrow(scene, id, endTarget.id);
+      }
+      scene.replace({ ...arrow, startBinding, endBinding });
+    });
   }
 
   private appendFreehandPoint(id: string, origin: Point, point: Point, pressure: number): void {
@@ -1200,6 +1242,61 @@ function roundnessType(type: string): number | null {
   if (type === "line" || type === "arrow") return RoundnessType.proportionalRadius;
   if (type === "rectangle" || type === "diamond") return RoundnessType.adaptiveRadius;
   return null;
+}
+
+/** Register `arrowID` in `targetID`'s boundElements (no duplicates). */
+function addBoundArrow(scene: Scene, arrowID: string, targetID: string): void {
+  const target = scene.element(targetID);
+  if (target === undefined) return;
+  const bound = target.boundElements ?? [];
+  if (bound.some((b) => b.id === arrowID)) return;
+  scene.replace({ ...target, boundElements: [...bound, { id: arrowID, type: "arrow" }] });
+}
+
+/**
+ * Recompute the endpoints of bound arrows from their targets' current bounds,
+ * skipping arrows that are themselves being dragged. Elbow routing is applied
+ * straight for now (the elbow router is a later slice). (parity: updateBoundArrows)
+ */
+function updateBoundArrows(scene: Scene, skipping: Set<string>): void {
+  for (const element of scene.elements) {
+    if (element.isDeleted || skipping.has(element.id) || element.type !== "arrow") continue;
+    if (element.startBinding === null && element.endBinding === null) continue;
+    const first = element.points[0];
+    const last = element.points[element.points.length - 1];
+    if (first === undefined || last === undefined) continue;
+    let startGlobal = new Point(element.x + first[0], element.y + first[1]);
+    let endGlobal = new Point(element.x + last[0], element.y + last[1]);
+    if (element.startBinding !== null) {
+      const target = scene.element(element.startBinding.elementId);
+      if (target !== undefined) {
+        startGlobal = pointForFixedPoint(
+          Point.fromArray(element.startBinding.fixedPoint),
+          elementBounds(target),
+        );
+      }
+    }
+    if (element.endBinding !== null) {
+      const target = scene.element(element.endBinding.elementId);
+      if (target !== undefined) {
+        endGlobal = pointForFixedPoint(
+          Point.fromArray(element.endBinding.fixedPoint),
+          elementBounds(target),
+        );
+      }
+    }
+    scene.replace({
+      ...element,
+      x: startGlobal.x,
+      y: startGlobal.y,
+      width: Math.abs(endGlobal.x - startGlobal.x),
+      height: Math.abs(endGlobal.y - startGlobal.y),
+      points: [
+        [0, 0],
+        [endGlobal.x - startGlobal.x, endGlobal.y - startGlobal.y],
+      ],
+    });
+  }
 }
 
 /** Extract just the base properties of an element (dropping type-specific fields). */
