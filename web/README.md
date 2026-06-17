@@ -16,9 +16,9 @@ web/
 │   ├── geometry/  @xs/geometry — bounds, hit-test, snapping, elbow A*  ✅ T2
 │   ├── render/    @xs/render — Canvas2D renderer, rough.js, SVG/PNG     🟡 T3
 │   ├── editor/    @xs/editor — tools, selection, generators, smart     ✅ T4
-│   ├── svelte/    @xs/svelte — Svelte 5 runes store + components          (T5)
+│   ├── svelte/    @xs/svelte — reactive EditorStore + Svelte bridge   🟡 T5
 │   └── protocol/  @xs/protocol — collaboration wire schema               (T7)
-├── apps/web/      browser app                                             (T5)
+├── apps/web/      browser app (Vite + Svelte 5)                         🟡 T5
 └── server/        WebSocket relay                                         (T7)
 ```
 
@@ -111,3 +111,12 @@ pnpm lint          # biome
     flowchart spawning (`addFlowchartNode` — clone the source node offset in a
     direction with stagger, link by a bound elbow arrow). 15 tests ported from
     ElbowArrowEditorTests + FlowchartTests. **`@xs/editor` is now feature-complete.**
+- **T5 — Svelte UI (in progress):** `@xs/svelte` exposes a reactive `EditorStore`
+  bridge (the runes-ready wrapper over `@xs/editor` + `@xs/render`, mirroring the
+  Swift `EditorModel`): view→scene pointer forwarding, viewport pan/zoom, tool +
+  style commands, generators, undo/redo, theme, Canvas2D render, SVG export and
+  `.excalidraw` document round-trip — 11 tests. `apps/web` is a runnable Vite +
+  Svelte 5 example (toolbar, canvas with pointer + wheel pan/zoom, properties,
+  actions, generators, zoom, theme, export) — builds clean, `svelte-check` 0
+  errors, exercised in CI. Still to do: laser/eraser trails, on-canvas text
+  editing, command palette, keyboard shortcuts, image import.
