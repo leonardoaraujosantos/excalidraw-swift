@@ -22,6 +22,7 @@ export {
   isVertical,
 } from "./heading.js";
 export { cullVisible } from "./culling.js";
+export { CropGeometry } from "./crop-geometry.js";
 export { dirtyRegion } from "./dirty-region.js";
 export { frameChildren, frameContaining, isFrame } from "./frames.js";
 export {

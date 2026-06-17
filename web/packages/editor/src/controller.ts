@@ -1,5 +1,6 @@
 import {
   BoundingBox,
+  CropGeometry,
   DEFAULT_SNAP_DISTANCE,
   type RecognizedShape,
   type ShapeRecognition,
@@ -74,7 +75,16 @@ export class EditorController {
   snapLinesY: number[] = [];
   /** The line/arrow currently in point-edit mode (`null` when not editing). */
   editingLinearID: string | null = null;
+  /** The image currently in crop mode (`null` when not cropping). */
+  editingCropID: string | null = null;
 
+  private cropNaturalSize: { width: number; height: number } | null = null;
+  private cropDrag: {
+    handle: TransformHandle;
+    startBox: BoundingBox;
+    startCrop: ImageCrop;
+    fullBox: BoundingBox;
+  } | null = null;
   private interaction: Interaction = { kind: "idle" };
   private readonly nextID: () => string;
   private readonly nextSeed: () => number;
@@ -109,7 +119,12 @@ export class EditorController {
   /** Handle positions for the current selection (empty unless the selection tool is active). */
   transformHandles(): Map<TransformHandle, Point> {
     const bounds = this.selectionBounds;
-    if (this.editingLinearID !== null || this.activeTool !== "selection" || bounds === null) {
+    if (
+      this.editingLinearID !== null ||
+      this.editingCropID !== null ||
+      this.activeTool !== "selection" ||
+      bounds === null
+    ) {
       return new Map();
     }
     return Transform.handlePositions(bounds, this.rotationOffset);
@@ -119,6 +134,7 @@ export class EditorController {
 
   pointerDown(e: PointerEvent): void {
     this.selectionRect = null;
+    if (this.editingCropID !== null && this.handleCropEditDown(e)) return;
     if (this.editingLinearID !== null && this.handleLinearEditDown(e)) return;
     if (this.activeTool === "eraser") {
       this.interaction = { kind: "erasing" };
@@ -132,6 +148,10 @@ export class EditorController {
   }
 
   pointerMove(e: PointerEvent): void {
+    if (this.cropDrag !== null) {
+      this.moveCropDrag(e.scenePoint);
+      return;
+    }
     const i = this.interaction;
     switch (i.kind) {
       case "creating":
@@ -190,6 +210,11 @@ export class EditorController {
   }
 
   pointerUp(e: PointerEvent): void {
+    if (this.cropDrag !== null) {
+      this.cropDrag = null;
+      this.store.commit();
+      return;
+    }
     const i = this.interaction;
     switch (i.kind) {
       case "creating":
@@ -238,6 +263,111 @@ export class EditorController {
   setTool(tool: Tool): void {
     this.activeTool = tool;
     this.exitLinearEdit();
+    this.exitCropEdit();
+  }
+
+  // MARK: Image cropping
+
+  /** Enter crop mode for image `id`; the UI supplies the natural pixel size. */
+  beginCropEdit(id: string, naturalWidth: number, naturalHeight: number): boolean {
+    const el = this.scene.element(id);
+    if (el === undefined || el.type !== "image" || naturalWidth <= 0 || naturalHeight <= 0)
+      return false;
+    this.editingCropID = id;
+    this.cropNaturalSize = { width: naturalWidth, height: naturalHeight };
+    this.selectedIDs = new Set([id]);
+    return true;
+  }
+
+  exitCropEdit(): void {
+    this.editingCropID = null;
+    this.cropNaturalSize = null;
+    this.cropDrag = null;
+  }
+
+  /** The topmost image hit at `point`, with its data URL (to enter crop mode). */
+  imageHit(point: Point): { id: string; dataURL: string } | null {
+    const threshold = this.handleHitRadius("mouse");
+    const visible = this.scene.visibleElements;
+    for (let k = visible.length - 1; k >= 0; k--) {
+      const el = visible[k]!;
+      if (el.locked || el.type !== "image" || el.fileId === null) continue;
+      const file = this.scene.files[el.fileId];
+      if (file !== undefined && hit(el, point, threshold))
+        return { id: el.id, dataURL: file.dataURL };
+    }
+    return null;
+  }
+
+  /** The current display box of the image being cropped. */
+  cropFrame(): BoundingBox | null {
+    const id = this.editingCropID;
+    const el = id === null ? undefined : this.scene.element(id);
+    if (el === undefined) return null;
+    return new BoundingBox(el.x, el.y, el.x + el.width, el.y + el.height);
+  }
+
+  /** The eight handle positions framing the image being cropped (for the overlay). */
+  cropEditHandles(): Point[] | null {
+    const frame = this.cropFrame();
+    if (frame === null) return null;
+    const handles = Transform.handlePositions(frame, 0);
+    handles.delete("rotation");
+    return [...handles.values()];
+  }
+
+  private effectiveCrop(el: ExcalidrawElement): ImageCrop | null {
+    if (el.type !== "image") return null;
+    if (el.crop !== null) return el.crop;
+    if (this.cropNaturalSize === null) return null;
+    return CropGeometry.fullCrop(this.cropNaturalSize.width, this.cropNaturalSize.height);
+  }
+
+  private handleCropEditDown(e: PointerEvent): boolean {
+    const id = this.editingCropID;
+    const el = id === null ? undefined : this.scene.element(id);
+    const frame = this.cropFrame();
+    const crop = el === undefined ? null : this.effectiveCrop(el);
+    if (el === undefined || frame === null || crop === null) {
+      this.exitCropEdit();
+      return false;
+    }
+    const threshold = this.handleHitRadius(e.type);
+    const handles = Transform.handlePositions(frame, 0);
+    handles.delete("rotation");
+    for (const [handle, position] of handles) {
+      if (position.distance(e.scenePoint) <= threshold) {
+        this.cropDrag = {
+          handle,
+          startBox: frame,
+          startCrop: crop,
+          fullBox: CropGeometry.fullImageBox(frame, crop),
+        };
+        return true;
+      }
+    }
+    this.exitCropEdit();
+    return false;
+  }
+
+  private moveCropDrag(point: Point): void {
+    const drag = this.cropDrag;
+    const id = this.editingCropID;
+    const el = id === null ? undefined : this.scene.element(id);
+    if (drag === null || el === undefined || el.type !== "image") return;
+    const resized = Transform.resize(drag.startBox, drag.handle, point);
+    const newBox = CropGeometry.clampBox(resized, drag.fullBox);
+    const crop = CropGeometry.updatedCrop(drag.startBox, drag.startCrop, newBox);
+    this.store.modifyScene((scene) =>
+      scene.replace({
+        ...el,
+        crop,
+        x: newBox.minX,
+        y: newBox.minY,
+        width: newBox.width,
+        height: newBox.height,
+      }),
+    );
   }
 
   // MARK: Linear point editing

@@ -94,3 +94,8 @@ pnpm lint          # biome
     tool change / click-away; suppresses box-transform handles. 6 tests ported
     from LinearEditTests. Still to port: elbow arrows, image-crop drag,
     flowchart spawning.
+  - **T4 slice 7:** interactive image cropping (`CropGeometry` in `@xs/geometry`
+    + crop mode in the editor) — `beginCropEdit`, eight crop handles, drag to
+    reframe with the crop rectangle tracking the pixels (clamped to the full
+    image), exit on tool change / tap-away. 9 tests ported from ImageCropTests.
+    Still to port: elbow arrows, flowchart spawning.
