@@ -18,8 +18,11 @@ public enum Exporter {
     }
 
     /// Render the scene's visible content to a PNG. Returns `nil` for an empty
-    /// scene or on failure.
-    public static func pngData(_ scene: Scene, options: Options = Options()) -> Data? {
+    /// scene or on failure. When `embedScene` is true the scene JSON is embedded
+    /// in the PNG so the image can be re-opened as an editable drawing.
+    public static func pngData(
+        _ scene: Scene, options: Options = Options(), embedScene: Bool = true
+    ) -> Data? {
         guard let image = cgImage(scene, options: options) else { return nil }
         let data = NSMutableData()
         guard let dest = CGImageDestinationCreateWithData(
@@ -27,7 +30,8 @@ public enum Exporter {
         ) else { return nil }
         CGImageDestinationAddImage(dest, image, nil)
         guard CGImageDestinationFinalize(dest) else { return nil }
-        return data as Data
+        let png = data as Data
+        return embedScene ? (PNGSceneEmbed.embed(scene, into: png) ?? png) : png
     }
 
     public static func cgImage(_ scene: Scene, options: Options = Options()) -> CGImage? {

@@ -460,6 +460,18 @@ public final class EditorModel: ObservableObject {
         revision += 1
     }
 
+    /// If `pngData` is an exported PNG with an embedded scene, open it as the
+    /// current drawing (the PNG scene-embed round-trip). Returns whether it did.
+    @discardableResult
+    public func openSceneFromPNG(_ pngData: Data) -> Bool {
+        guard let scene = PNGSceneEmbed.extractScene(from: pngData) else { return false }
+        controller.load(scene: scene)
+        activeTool = .selection
+        controller.setTool(.selection)
+        revision += 1
+        return true
+    }
+
     // MARK: Library
 
     @Published public var library: [[ExcalidrawElement]] = []

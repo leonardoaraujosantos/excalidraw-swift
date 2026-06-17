@@ -562,6 +562,9 @@ public struct EditorView: View {
         guard let item else { return }
         Task {
             if let data = try? await item.loadTransferable(type: Data.self) {
+                // An exported PNG with an embedded scene re-opens as a drawing;
+                // otherwise it's inserted as an image.
+                if model.openSceneFromPNG(data) { return }
                 model.insertImage(data: data, mimeType: "image/png", viewSize: model.canvasSize)
             }
         }
