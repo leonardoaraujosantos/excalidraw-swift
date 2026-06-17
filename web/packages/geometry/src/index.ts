@@ -40,6 +40,12 @@ export {
 } from "./hit-test.js";
 export { ShapeGenerator } from "./shape-generator.js";
 export {
+  type RecognizedShape,
+  type ShapeRecognition,
+  ShapeRecognizer,
+  isPolylineShape,
+} from "./shape-recognizer.js";
+export {
   type SnapResult,
   DEFAULT_SNAP_DISTANCE,
   NO_SNAP,

@@ -78,3 +78,9 @@ pnpm lint          # biome
     bound-text labels + bound arrows. 7 tests ported from MermaidParserTests.
     Still to port: arrow binding, elbow arrows, linear point edit, image crop,
     shape recognition, flowchart spawning.
+  - **T4 slice 4:** freehand shape recognition (`ShapeRecognizer` in
+    `@xs/geometry` + `recognizeFreedraw`) — RDP simplification + circularity +
+    star/heart/cloud/speech-bubble feature detectors → snap a stroke to a clean
+    rectangle/ellipse/diamond/triangle/pentagon/hexagon/star/etc. 5 tests
+    ported from ShapeRecognitionTests. Still to port: arrow binding, elbow
+    arrows, linear point edit, image-crop drag, flowchart spawning.

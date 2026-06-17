@@ -1,6 +1,9 @@
 import {
   BoundingBox,
   DEFAULT_SNAP_DISTANCE,
+  type RecognizedShape,
+  type ShapeRecognition,
+  ShapeRecognizer,
   commonBounds,
   bounds as elementBounds,
   frameChildren,
@@ -12,6 +15,7 @@ import {
 } from "@xs/geometry";
 import { Point } from "@xs/math";
 import {
+  type BaseProperties,
   type BinaryFileData,
   type ExcalidrawElement,
   type ImageCrop,
@@ -1017,6 +1021,41 @@ export class EditorController {
     });
   }
 
+  /**
+   * If `id` is a freedraw stroke that resembles a known shape, replace it with
+   * that shape (preserving style) as one undo step and keep it selected.
+   */
+  recognizeFreedraw(id: string): RecognizedShape | null {
+    const el = this.scene.element(id);
+    if (el === undefined || el.type !== "freedraw") return null;
+    const global = el.points.map((p) => new Point(el.x + p[0], el.y + p[1]));
+    const recognition = ShapeRecognizer.recognize(global);
+    if (recognition === null) return null;
+    const replacement = this.applyRecognition(recognition, baseOf(el));
+    this.store.transaction((scene) => scene.replace(replacement));
+    this.selectedIDs = new Set([id]);
+    return recognition.shape;
+  }
+
+  private applyRecognition(rec: ShapeRecognition, base: BaseProperties): ExcalidrawElement {
+    const box = rec.bounds;
+    if (rec.shape === "rectangle" || rec.shape === "ellipse" || rec.shape === "diamond") {
+      return {
+        ...base,
+        x: box.minX,
+        y: box.minY,
+        width: box.width,
+        height: box.height,
+        type: rec.shape,
+      };
+    }
+    if (rec.shape === "line") {
+      return polylineElement(base, rec.vertices, false);
+    }
+    const closed = [...rec.vertices, rec.vertices[0] ?? Point.zero];
+    return polylineElement(base, closed, true);
+  }
+
   /** Parse `text` as a Mermaid flowchart and insert it with top-left at `point`. */
   insertMermaid(text: string, point: Point): boolean {
     const parsed = parseMermaid(text, this.nextSeed());
@@ -1161,6 +1200,65 @@ function roundnessType(type: string): number | null {
   if (type === "line" || type === "arrow") return RoundnessType.proportionalRadius;
   if (type === "rectangle" || type === "diamond") return RoundnessType.adaptiveRadius;
   return null;
+}
+
+/** Extract just the base properties of an element (dropping type-specific fields). */
+function baseOf(el: ExcalidrawElement): BaseProperties {
+  const base: BaseProperties = {
+    id: el.id,
+    x: el.x,
+    y: el.y,
+    width: el.width,
+    height: el.height,
+    angle: el.angle,
+    strokeColor: el.strokeColor,
+    backgroundColor: el.backgroundColor,
+    fillStyle: el.fillStyle,
+    strokeWidth: el.strokeWidth,
+    strokeStyle: el.strokeStyle,
+    roundness: el.roundness,
+    roughness: el.roughness,
+    opacity: el.opacity,
+    seed: el.seed,
+    version: el.version,
+    versionNonce: el.versionNonce,
+    index: el.index,
+    isDeleted: el.isDeleted,
+    groupIds: el.groupIds,
+    frameId: el.frameId,
+    boundElements: el.boundElements,
+    updated: el.updated,
+    link: el.link,
+    locked: el.locked,
+  };
+  if (el.customData !== undefined) base.customData = el.customData;
+  return base;
+}
+
+/** Build a line element from absolute `vertices`, normalized to its own origin. */
+function polylineElement(
+  base: BaseProperties,
+  vertices: Point[],
+  polygon: boolean,
+): ExcalidrawElement {
+  const origin = vertices[0] ?? Point.zero;
+  const local: LocalPoint[] = vertices.map((v) => [v.x - origin.x, v.y - origin.y]);
+  const xs = local.map((p) => p[0]);
+  const ys = local.map((p) => p[1]);
+  return {
+    ...base,
+    x: origin.x,
+    y: origin.y,
+    width: Math.max(...xs) - Math.min(...xs),
+    height: Math.max(...ys) - Math.min(...ys),
+    type: "line",
+    points: local,
+    startBinding: null,
+    endBinding: null,
+    startArrowhead: null,
+    endArrowhead: null,
+    polygon,
+  };
 }
 
 function isSuperset(set: Set<string>, subset: Set<string>): boolean {
