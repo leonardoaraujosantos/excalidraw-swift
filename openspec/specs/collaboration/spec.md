@@ -5,9 +5,20 @@
 Real-time multi-client editing of one shared scene over a custom WebSocket
 protocol, so an iOS/iPad (Swift) client and a web (Svelte) client edit the same
 room live. The wire schema and the element-reconciliation rule are
-language-neutral and implemented identically on both clients (TS: `@xs/protocol`,
-ported faithfully into the Swift client), so the two converge without a central
-authority or CRDT. (src: web/packages/protocol/)
+language-neutral and implemented identically on both clients, so the two
+converge without a central authority or CRDT.
+
+Implemented by:
+- the wire schema + reconciliation: TS `web/packages/protocol/` and Swift
+  `Sources/ExcalidrawCollab/` (`CollabMessage`, `Reconcile`, `CollabCodec`),
+  kept byte-identical by the shared `Fixtures/protocol/*.json` corpus that both
+  test suites assert against;
+- the relay: `web/server/` (`@xs/server` `RelayCore` + `ws` adapter);
+- the clients: web `@xs/svelte` `CollabSession` (wired into `EditorStore`) and
+  Swift `ExcalidrawCollab.CollabClient` (wired into `EditorModel`);
+- an automated live iPad-simulator ↔ browser session: `web/scripts/collab-live.sh`
+  (XCUITest `CollabLiveUITests` + Playwright `collab-live.spec.ts` against one
+  relay). (src: web/packages/protocol/, Sources/ExcalidrawCollab/, web/server/)
 
 ## Requirements
 

@@ -35,6 +35,11 @@ pnpm lint          # biome
 # End-to-end (drives the real app in a browser, like the iOS SmokeUITests):
 pnpm --filter excalidraw-web-app exec playwright install chromium   # once
 pnpm --filter excalidraw-web-app e2e                                # screenshots → apps/web/test-results/screens/
+
+# Live cross-platform collaboration (macOS + Xcode): starts a relay, joins a
+# browser (Playwright) and the real SwiftUI app in an iOS simulator to one
+# room, and asserts both converge. Requires xcodegen.
+./scripts/collab-live.sh
 ```
 
 ## Status
@@ -249,6 +254,12 @@ pnpm --filter excalidraw-web-app e2e                                # screenshot
     suite. **An iPad and a browser now edit the same room live** — cursors,
     selections, and elements sync both ways, surviving reconnects. **T7 complete;
     the library is feature-complete with a working collaborative web example.**
+  - **Live cross-platform session (automated).** `scripts/collab-live.sh` starts
+    a relay, joins the real browser app (Playwright `collab-live.spec.ts`) and
+    the real SwiftUI app in an iOS simulator (XCUITest `CollabLiveUITests`) to
+    one room, and asserts each side sees the other's element + the peer roster.
+    Verified locally: both sides PASS (the iPad shows 2 shared elements / 1
+    peer). Socket-level + `EditorModel`-level roster diagnostics back it up.
   - **Mermaid + tables hardening:** a Playwright pass over the generators
     surfaced and fixed a label bug — container-bound text (Mermaid nodes, table
     cells) rendered **left-aligned** because centring keyed on the stored cell

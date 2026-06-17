@@ -1,8 +1,19 @@
 # TypeScript + Svelte 5 Port — Roadmap
 
-A plan to grow a **second implementation** of the Excalidraw-Swift library in TypeScript, with a **Svelte 5** UI shell, so that — in Phase 8 — **iOS and web-browser clients collaborate in real time over a custom WebSocket protocol**.
+A plan to grow a **second implementation** of the Excalidraw-Swift library in TypeScript, with a **Svelte 5** UI shell, so that **iOS and web-browser clients collaborate in real time over a custom WebSocket protocol**.
 
 The Swift app and the TS/Svelte app are *twins*: they share the same data model, the same `.excalidraw` v2 wire format, and — crucially for collaboration — the same element-reconciliation semantics. The [OpenSpec baseline specs](../openspec/specs/) are the **language-neutral contract** both implementations are built against.
+
+---
+
+## Status — ✅ delivered (T0 → T7 complete)
+
+All phases are implemented and green; this document is kept as the historical plan, annotated with what shipped. Built in the `web/` pnpm workspace (tracked on PR #10):
+
+- **`@xs/math · model · geometry · render · editor · svelte · protocol`** + a Node relay **`server/`** (`@xs/server`), and the **`apps/web`** example exercising every feature.
+- **Cross-language parity** enforced in CI: `.excalidraw` round-trip, rough.js op-set parity (TS `roughjs` ⇔ Swift `RoughKit`), canonical-JSON goldens, and byte-identical **protocol** wire fixtures (`Fixtures/protocol/`).
+- **Collaboration (T7):** `@xs/protocol` + relay + version/`versionNonce` reconcile + presence/cursors + auto-reconnect; the Swift twin lives in `Sources/ExcalidrawCollab` and speaks a byte-identical protocol. **An iPad simulator and a browser edit one room live**, automated end-to-end by `web/scripts/collab-live.sh` (XCUITest + Playwright + relay).
+- **Resolved decisions** (§12): polyglot monorepo here; JSON wire (v1) with sorted-key canonical fixtures (Protobuf deferred); reuse `roughjs`/`perfect-freehand`; Vite SPA; plaintext rooms first (E2E encryption deferred). **Deferred tiers:** `@xs/render-webgl` (WebGL), durable/Redis relay persistence, E2E encryption.
 
 ---
 
@@ -33,7 +44,7 @@ The Swift app and the TS/Svelte app are *twins*: they share the same data model,
 
 ---
 
-## 3. Repository layout (decision to confirm)
+## 3. Repository layout (chosen: polyglot monorepo)
 
 **Recommended: polyglot monorepo in this same repo**, so the specs and conformance fixtures are one source of truth.
 
@@ -141,9 +152,9 @@ Phases mirror the Swift [`docs/ROADMAP.md`](ROADMAP.md) so progress is comparabl
 - Cross-language golden-image suite, performance budget, accessibility pass, docs.
 - **Exit:** visual diff vs Swift goldens within tolerance; perf acceptable on mid-range hardware.
 
-### T7 — Phase 8: Collaboration (the goal)
-- `@xs/protocol`, `server/` relay, presence/cursors, element sync + reconcile, reconnect/persistence; Swift client implements the same protocol. See §9.
-- **Exit:** an iPad and a browser edit the same room live — cursors, selections, and elements sync both ways; survives reconnects.
+### T7 — Phase 8: Collaboration (the goal) — ✅ delivered
+- `@xs/protocol`, `server/` relay, presence/cursors, element sync + reconcile, reconnect; Swift client (`Sources/ExcalidrawCollab`) implements the same protocol. See §9.
+- **Exit (met):** an iPad simulator and a browser edit the same room live — cursors, selections, and elements sync both ways; survives reconnects. Automated by `web/scripts/collab-live.sh`. (In-memory relay snapshot only; durable/Redis persistence deferred.)
 
 ---
 
@@ -213,13 +224,13 @@ Each sub-capability (presence, element-sync, persistence/reconnect, encryption) 
 
 ---
 
-## 12. Decisions to confirm
+## 12. Decisions (resolved)
 
-1. **Repo layout** — polyglot monorepo here (recommended) vs separate repo with vendored fixtures/specs.
-2. **Protocol schema tooling** — Protobuf (recommended) vs TS-first + Swift codegen vs JSON-Schema-validated hand types.
-3. **Reuse depth** — confirm we lean on `roughjs` + `perfect-freehand` rather than re-porting them (recommended), accepting those npm deps in the web build.
-4. **App framework** — Vite SPA (lighter) vs SvelteKit (routing/SSR, useful if rooms get shareable pages).
-5. **E2E encryption** — plaintext rooms first, E2E as a follow-up (recommended) vs E2E from day one.
+1. **Repo layout** — ✅ polyglot monorepo here (`web/` workspace alongside `Sources/`, `openspec/`, `Fixtures/`).
+2. **Protocol schema tooling** — ✅ JSON wire (v1) with a sorted-key **canonical** form locked by shared `Fixtures/protocol/*.json` fixtures (both clients hand-maintain matching types); Protobuf deferred.
+3. **Reuse depth** — ✅ reuse `roughjs` + `perfect-freehand` (npm) in the web build.
+4. **App framework** — ✅ Vite SPA (`apps/web`).
+5. **E2E encryption** — ✅ plaintext rooms first; E2E encryption deferred as a follow-up.
 
 ---
 

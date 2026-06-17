@@ -134,12 +134,11 @@ Legend: 🎯 milestone deliverable · 🧪 test focus · ⚠️ risk/hard part.
 
 **Sequencing:** A → B → *(measure)* → C → *(measure)* → D. A + B + C delivered the perceived speedup and crisp zoom on CPU; Stage D (Metal) then landed as a runtime-selectable GPU backend behind the CG fallback, for raster-bound workloads and to compare the two renderers on device.
 
-## Phase 8 — Collaboration & cloud (optional / future)
+## Phase 8 — Collaboration & cloud
 **Goal:** multiplayer across **iOS and web-browser** clients over a **custom WebSocket protocol**.
-- Reuse Delta/Store sync unit + fractional indexing + `version`/`versionNonce` reconciliation already in place.
-- Custom WebSocket transport (rooms, presence, element sync), collaborator cursors/presence, conflict resolution, follow mode.
-- Requires the **TypeScript + Svelte 5 twin** of the library for the web client — see **[docs/TYPESCRIPT_SVELTE_PORT.md](TYPESCRIPT_SVELTE_PORT.md)** (its phase T7 *is* this Phase 8). A shared `@xs/protocol` schema is spoken by both the Swift and TypeScript clients.
-- 🎯 Real-time collaboration parity, iPad ↔ browser.
+
+> **Status: complete (core).** Real-time iPad ↔ browser collaboration is delivered. A shared, byte-identical wire protocol is spoken by both clients — Swift `ExcalidrawCollab` (`CollabMessage`, `Reconcile`, `CollabCodec`, `CollabClient`) and TypeScript `@xs/protocol` + `@xs/svelte` `CollabSession` — locked by the `Fixtures/protocol/*.json` corpus both test suites assert against. A Node relay (`web/server/`) handles rooms, presence, and an in-memory scene snapshot; the existing `version`/`versionNonce` reconciliation resolves concurrent edits identically on both sides. `EditorModel` joins a room (broadcast local edits, apply remote reconciled without polluting undo, presence/cursors, auto-reconnect). **Validated end-to-end:** the real SwiftUI app in an iOS simulator and a real browser join one room and converge live — automated by `web/scripts/collab-live.sh` (XCUITest `CollabLiveUITests` + Playwright). The TypeScript + Svelte 5 twin (the web client) is its phase T7 — see **[docs/TYPESCRIPT_SVELTE_PORT.md](TYPESCRIPT_SVELTE_PORT.md)**.
+> **Deferred:** durable/Redis relay persistence (snapshot is in-memory), end-to-end encryption, and follow mode.
 
 > **Generators shipped (additive, no architecture change):** group-aware selection; **tables** (a grid of container-bound text cells, add row/column, edit via double-tap); **charts** (bar/line from a number series, via a values-input sheet) — both emit standard grouped elements and round-trip through `.excalidraw`. **Remaining from this group:** Mermaid → diagram (a text→elements parser; Swift flowchart-subset or JSC-embedded mermaid.js).
 
@@ -150,7 +149,7 @@ Legend: 🎯 milestone deliverable · 🧪 test focus · ⚠️ risk/hard part.
 The single source of truth for what's **not** yet implemented, kept in sync with the code. Phases 0–7 + tables/charts + Phase 7.5 rendering acceleration are complete, and most of the original long tail has since shipped (Mermaid, embeddables, PNG re-open, pickers, laser/eraser, fonts infra, Apple Pencil, Files/autosave — see **Recently closed** below). 572 tests, ~92% logic coverage, CI green; everything still listed is deliberately deferred, not forgotten.
 
 **Still deferred**
-- **Collaboration & cloud** (Phase 8) — real-time multiplayer, presence, cursors, follow mode. Not started; the data model (deltas, fractional indices, version nonces) is built collab-ready.
+- **Collaboration & cloud** (Phase 8) — core real-time multiplayer (iPad ↔ browser, presence, cursors, reconnect) is **done** (see Phase 8 above). Still deferred: durable/Redis relay persistence, end-to-end encryption, and follow mode.
 - **Bundled font files** — the loading + family mapping is wired (`FontRegistry`), but the licensed Excalidraw font files (Excalifont/Virgil/Comic Shanns…) aren't committed; dropping them into the app bundle takes effect, otherwise text uses system fallbacks (Bradley Hand / Helvetica / Menlo). Exact Core Text metric parity also remains.
 - **Hand-drawn parity** — hachure fill and perfect-freehand outlines are visually faithful but not line-identical to upstream (scan-line/edge handling differs).
 - **GPU text** — text stays on the Core Graphics overlay by design (a fixed-size glyph atlas pixelates at zoom; SDF GPU text is a future option); the GPU pass repaints the full viewport (ignores the incremental-redraw `clip`).
