@@ -194,8 +194,20 @@ pnpm --filter excalidraw-web-app e2e                                # screenshot
   the same element without a central authority or CRDT. 15 tests (reconcile
   convergence/symmetry, delete races, batch merge, codec round-trip). Captured
   as the OpenSpec [`collaboration`](../openspec/specs/collaboration/spec.md)
-  baseline. Still to do: the Node relay `server/`, presence/cursor UI, and the
-  Swift client.
+  baseline.
+  - **T7 slice 2 — relay server (`server/`, `@xs/server`):** a raw-WebSocket
+    Node relay (`ws`). The room/presence/scene logic is a pure, socket-free
+    `RelayCore` state machine (every handler maps a connection id + decoded
+    message → `Outbound` batches), with a thin `ws` adapter (`startRelay`) that
+    decodes frames, drops malformed ones, and fans out the batches. On join a
+    peer gets `room-state` (roster + current scene) and others get
+    `peer-joined`; `presence`/`pointer`/`element-updates` relay to the rest of
+    the room; the relay keeps a per-room snapshot **reconciled** with
+    `@xs/protocol` so late joiners receive the latest scene and a stale update
+    can't clobber a newer element; disconnect emits `peer-left` and drops empty
+    rooms. 10 tests (8 `RelayCore` unit + 2 end-to-end over real `ws` sockets).
+    Still to do: presence/cursor UI wired into the `EditorStore`, and the Swift
+    client.
   - **Mermaid + tables hardening:** a Playwright pass over the generators
     surfaced and fixed a label bug — container-bound text (Mermaid nodes, table
     cells) rendered **left-aligned** because centring keyed on the stored cell
