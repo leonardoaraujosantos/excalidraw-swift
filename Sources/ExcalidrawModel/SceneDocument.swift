@@ -8,7 +8,7 @@ public enum SceneDocument {
     public static let utType = "com.excalidraw.scene"
 
     public static func encode(
-        _ scene: Scene, source: String = "excalidraw-swift", prettyPrinted: Bool = true
+        _ scene: Scene, source: String = "excalidraw-swift-web", prettyPrinted: Bool = true
     ) throws -> Data {
         try scene.toFile(source: source).jsonData(prettyPrinted: prettyPrinted)
     }

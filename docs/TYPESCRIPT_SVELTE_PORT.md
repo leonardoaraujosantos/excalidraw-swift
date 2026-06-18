@@ -49,7 +49,7 @@ All phases are implemented and green; this document is kept as the historical pl
 **Recommended: polyglot monorepo in this same repo**, so the specs and conformance fixtures are one source of truth.
 
 ```
-excalidraw-swift/            (repo root — keep the name or rename later)
+excalidraw-swift-web/            (repo root — keep the name or rename later)
 ├── Sources/ …               existing Swift packages
 ├── openspec/specs/ …        shared contract (already exists)
 ├── fixtures/                NEW — shared golden fixtures (scenes, seeds, expected JSON/SVG)

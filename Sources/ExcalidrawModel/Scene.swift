@@ -25,7 +25,7 @@ public struct Scene: Equatable, Sendable {
         self.init(elements: file.elements, appState: file.appState, files: file.files)
     }
 
-    public func toFile(source: String = "excalidraw-swift") -> ExcalidrawFile {
+    public func toFile(source: String = "excalidraw-swift-web") -> ExcalidrawFile {
         ExcalidrawFile(source: source, elements: elements, appState: appState, files: files)
     }
 

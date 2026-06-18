@@ -29,10 +29,10 @@
   "author": "Cyberdyne Corp AI",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/leonardoaraujosantos/excalidraw-swift.git",
+    "url": "git+https://github.com/leonardoaraujosantos/excalidraw-swift-web.git",
     "directory": "web/packages/render"
   },
-  "homepage": "https://github.com/leonardoaraujosantos/excalidraw-swift#readme",
+  "homepage": "https://github.com/leonardoaraujosantos/excalidraw-swift-web#readme",
   "module": "./dist/index.js",
   "files": ["dist", "README.md"],
   "sideEffects": false,
