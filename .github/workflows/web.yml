@@ -27,6 +27,7 @@ jobs:
           cache: pnpm
           cache-dependency-path: web/pnpm-lock.yaml
       - run: pnpm install --frozen-lockfile
+      - run: pnpm build:libs # emit dist/ so workspace exports (./dist) resolve for typecheck/test/build
       - run: pnpm typecheck
       - run: pnpm test
       - run: pnpm lint
@@ -49,6 +50,7 @@ jobs:
           cache: pnpm
           cache-dependency-path: web/pnpm-lock.yaml
       - run: pnpm install --frozen-lockfile
+      - run: pnpm build:libs # the app's vite build resolves @cyberdynecorp/excalidraw-svelte via ./dist
       - run: pnpm --filter excalidraw-web-app exec playwright install --with-deps chromium
       - run: pnpm --filter excalidraw-web-app e2e
       - uses: actions/upload-artifact@v4
