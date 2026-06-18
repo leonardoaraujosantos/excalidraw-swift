@@ -1,4 +1,4 @@
-import type { ExcalidrawElement } from "@cyberdynecorp/model";
+import type { ExcalidrawElement } from "@cyberdynecorp/excalidraw-model";
 import {
   type Message,
   PROTOCOL_VERSION,
@@ -8,7 +8,7 @@ import {
   decode,
   encode,
   message,
-} from "@cyberdynecorp/protocol";
+} from "@cyberdynecorp/excalidraw-protocol";
 
 /**
  * The minimal transport `CollabSession` needs — satisfied by the browser's
@@ -44,7 +44,7 @@ export interface CollabHooks {
  * Client side of the collaboration protocol: opens a room, mirrors local edits
  * to peers as `element-updates`, applies remote edits (the store reconciles by
  * `version`/`versionNonce`), and tracks peer presence/cursors. Speaks the exact
- * `@cyberdynecorp/protocol` wire format the Swift client speaks, so an iOS device and a web
+ * `@cyberdynecorp/excalidraw-protocol` wire format the Swift client speaks, so an iOS device and a web
  * browser share one room. (parity: the Swift `CollabClient`.)
  */
 export class CollabSession {

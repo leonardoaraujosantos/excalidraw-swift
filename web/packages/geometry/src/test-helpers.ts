@@ -8,7 +8,7 @@ import {
   type LocalPoint,
   defaultBase,
   defaultTextProps,
-} from "@cyberdynecorp/model";
+} from "@cyberdynecorp/excalidraw-model";
 
 interface ElOpts {
   x?: number;

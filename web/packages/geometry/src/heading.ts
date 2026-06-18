@@ -1,4 +1,4 @@
-import { type Point, Vector } from "@cyberdynecorp/math";
+import { type Point, Vector } from "@cyberdynecorp/excalidraw-math";
 import type { BoundingBox } from "./bounding-box.js";
 
 /** One of the four cardinal directions an elbow-arrow segment can travel. */

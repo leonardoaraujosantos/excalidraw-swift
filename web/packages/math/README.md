@@ -1,4 +1,4 @@
-# @cyberdynecorp/math
+# @cyberdynecorp/excalidraw-math
 
 Pure 2D math primitives — points, vectors, angles, curves, geometry — ported from ExcalidrawMath.
 
@@ -7,7 +7,7 @@ Part of the **[Excalidraw — Native Swift + TypeScript/Svelte port](https://git
 ## Install
 
 ```sh
-npm install @cyberdynecorp/math
+npm install @cyberdynecorp/excalidraw-math
 ```
 
 ESM-only. See the [monorepo README](https://github.com/leonardoaraujosantos/excalidraw-swift#readme) for the full package list and usage.

@@ -1,5 +1,5 @@
-import type { BoundingBox } from "@cyberdynecorp/geometry";
-import type { Point } from "@cyberdynecorp/math";
+import type { BoundingBox } from "@cyberdynecorp/excalidraw-geometry";
+import type { Point } from "@cyberdynecorp/excalidraw-math";
 import type { RenderContext } from "./scene-renderer.js";
 import type { Viewport } from "./viewport.js";
 

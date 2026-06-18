@@ -9,7 +9,7 @@ import { describe, expect, it } from "vitest";
  * reference values captured from the real rough.js 4.6.6 (`rough.generator()`,
  * fixed seed, default options). The TS twin renders with that *same* npm
  * package, so asserting against the *same* constants proves all three agree:
- * rough.js ⇔ Swift `RoughKit` ⇔ TS `@cyberdynecorp/render`. If any drifts, CI fails here.
+ * rough.js ⇔ Swift `RoughKit` ⇔ TS `@cyberdynecorp/excalidraw-render`. If any drifts, CI fails here.
  */
 const gen = rough.generator();
 

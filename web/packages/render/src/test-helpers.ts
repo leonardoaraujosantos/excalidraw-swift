@@ -4,7 +4,7 @@ import {
   type StrokeStyle,
   defaultBase,
   defaultTextProps,
-} from "@cyberdynecorp/model";
+} from "@cyberdynecorp/excalidraw-model";
 
 interface Opts {
   x?: number;

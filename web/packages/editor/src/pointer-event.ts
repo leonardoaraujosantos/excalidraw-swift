@@ -1,4 +1,4 @@
-import type { Point } from "@cyberdynecorp/math";
+import type { Point } from "@cyberdynecorp/excalidraw-math";
 
 export type PointerType = "mouse" | "pen" | "touch";
 export type PointerPhase = "down" | "move" | "up";

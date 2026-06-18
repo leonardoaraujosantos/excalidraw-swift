@@ -1,5 +1,5 @@
 {
-  "name": "@cyberdynecorp/editor",
+  "name": "@cyberdynecorp/excalidraw-editor",
   "version": "0.1.0",
   "description": "The pure editor state machine — tools, selection, transform, undo — ported from ExcalidrawEditor.",
   "type": "module",
@@ -16,9 +16,9 @@
     "build": "tsc -p tsconfig.build.json"
   },
   "dependencies": {
-    "@cyberdynecorp/geometry": "workspace:*",
-    "@cyberdynecorp/math": "workspace:*",
-    "@cyberdynecorp/model": "workspace:*"
+    "@cyberdynecorp/excalidraw-geometry": "workspace:*",
+    "@cyberdynecorp/excalidraw-math": "workspace:*",
+    "@cyberdynecorp/excalidraw-model": "workspace:*"
   },
   "devDependencies": {
     "typescript": "^5.7.2"

@@ -7,7 +7,7 @@ import {
   SceneDocument,
   defaultBase,
   defaultTextProps,
-} from "@cyberdynecorp/model";
+} from "@cyberdynecorp/excalidraw-model";
 import { describe, expect, it } from "vitest";
 import { exportSvg } from "./svg-export.js";
 

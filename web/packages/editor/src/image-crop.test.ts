@@ -1,5 +1,10 @@
-import { Point } from "@cyberdynecorp/math";
-import { type ExcalidrawElement, type ImageCrop, Scene, defaultBase } from "@cyberdynecorp/model";
+import { Point } from "@cyberdynecorp/excalidraw-math";
+import {
+  type ExcalidrawElement,
+  type ImageCrop,
+  Scene,
+  defaultBase,
+} from "@cyberdynecorp/excalidraw-model";
 import { describe, expect, it } from "vitest";
 import { EditorController } from "./controller.js";
 import { pointerEvent } from "./pointer-event.js";

@@ -1,5 +1,5 @@
 {
-  "name": "@cyberdynecorp/math",
+  "name": "@cyberdynecorp/excalidraw-math",
   "version": "0.1.0",
   "description": "Pure 2D math primitives — points, vectors, angles, curves, geometry — ported from ExcalidrawMath.",
   "type": "module",

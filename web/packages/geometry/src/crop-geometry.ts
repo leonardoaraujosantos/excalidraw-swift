@@ -1,4 +1,4 @@
-import type { ImageCrop } from "@cyberdynecorp/model";
+import type { ImageCrop } from "@cyberdynecorp/excalidraw-model";
 import { BoundingBox } from "./bounding-box.js";
 
 /**

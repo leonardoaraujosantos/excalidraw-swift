@@ -1,4 +1,4 @@
-# @cyberdynecorp/protocol
+# @cyberdynecorp/excalidraw-protocol
 
 Collaboration wire schema + version/versionNonce reconciliation for the WebSocket relay — shared by the web and Swift clients.
 
@@ -7,7 +7,7 @@ Part of the **[Excalidraw — Native Swift + TypeScript/Svelte port](https://git
 ## Install
 
 ```sh
-npm install @cyberdynecorp/protocol
+npm install @cyberdynecorp/excalidraw-protocol
 ```
 
 ESM-only. See the [monorepo README](https://github.com/leonardoaraujosantos/excalidraw-swift#readme) for the full package list and usage.

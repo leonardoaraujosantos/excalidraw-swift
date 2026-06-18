@@ -27,23 +27,23 @@ importers:
 
   apps/web:
     dependencies:
-      '@cyberdynecorp/editor':
+      '@cyberdynecorp/excalidraw-editor':
         specifier: workspace:*
         version: link:../../packages/editor
-      '@cyberdynecorp/math':
+      '@cyberdynecorp/excalidraw-math':
         specifier: workspace:*
         version: link:../../packages/math
-      '@cyberdynecorp/model':
+      '@cyberdynecorp/excalidraw-model':
         specifier: workspace:*
         version: link:../../packages/model
-      '@cyberdynecorp/render':
+      '@cyberdynecorp/excalidraw-render':
         specifier: workspace:*
         version: link:../../packages/render
-      '@cyberdynecorp/svelte':
+      '@cyberdynecorp/excalidraw-svelte':
         specifier: workspace:*
         version: link:../../packages/svelte
     devDependencies:
-      '@cyberdynecorp/server':
+      '@cyberdynecorp/excalidraw-relay':
         specifier: workspace:*
         version: link:../../server
       '@playwright/test':
@@ -67,13 +67,13 @@ importers:
 
   packages/editor:
     dependencies:
-      '@cyberdynecorp/geometry':
+      '@cyberdynecorp/excalidraw-geometry':
         specifier: workspace:*
         version: link:../geometry
-      '@cyberdynecorp/math':
+      '@cyberdynecorp/excalidraw-math':
         specifier: workspace:*
         version: link:../math
-      '@cyberdynecorp/model':
+      '@cyberdynecorp/excalidraw-model':
         specifier: workspace:*
         version: link:../model
     devDependencies:
@@ -83,10 +83,10 @@ importers:
 
   packages/geometry:
     dependencies:
-      '@cyberdynecorp/math':
+      '@cyberdynecorp/excalidraw-math':
         specifier: workspace:*
         version: link:../math
-      '@cyberdynecorp/model':
+      '@cyberdynecorp/excalidraw-model':
         specifier: workspace:*
         version: link:../model
     devDependencies:
@@ -108,7 +108,7 @@ importers:
 
   packages/protocol:
     dependencies:
-      '@cyberdynecorp/model':
+      '@cyberdynecorp/excalidraw-model':
         specifier: workspace:*
         version: link:../model
     devDependencies:
@@ -118,13 +118,13 @@ importers:
 
   packages/render:
     dependencies:
-      '@cyberdynecorp/geometry':
+      '@cyberdynecorp/excalidraw-geometry':
         specifier: workspace:*
         version: link:../geometry
-      '@cyberdynecorp/math':
+      '@cyberdynecorp/excalidraw-math':
         specifier: workspace:*
         version: link:../math
-      '@cyberdynecorp/model':
+      '@cyberdynecorp/excalidraw-model':
         specifier: workspace:*
         version: link:../model
       perfect-freehand:
@@ -140,26 +140,26 @@ importers:
 
   packages/svelte:
     dependencies:
-      '@cyberdynecorp/editor':
+      '@cyberdynecorp/excalidraw-editor':
         specifier: workspace:*
         version: link:../editor
-      '@cyberdynecorp/geometry':
+      '@cyberdynecorp/excalidraw-geometry':
         specifier: workspace:*
         version: link:../geometry
-      '@cyberdynecorp/math':
+      '@cyberdynecorp/excalidraw-math':
         specifier: workspace:*
         version: link:../math
-      '@cyberdynecorp/model':
+      '@cyberdynecorp/excalidraw-model':
         specifier: workspace:*
         version: link:../model
-      '@cyberdynecorp/protocol':
+      '@cyberdynecorp/excalidraw-protocol':
         specifier: workspace:*
         version: link:../protocol
-      '@cyberdynecorp/render':
+      '@cyberdynecorp/excalidraw-render':
         specifier: workspace:*
         version: link:../render
     devDependencies:
-      '@cyberdynecorp/server':
+      '@cyberdynecorp/excalidraw-relay':
         specifier: workspace:*
         version: link:../../server
       '@types/ws':
@@ -174,10 +174,10 @@ importers:
 
   server:
     dependencies:
-      '@cyberdynecorp/model':
+      '@cyberdynecorp/excalidraw-model':
         specifier: workspace:*
         version: link:../packages/model
-      '@cyberdynecorp/protocol':
+      '@cyberdynecorp/excalidraw-protocol':
         specifier: workspace:*
         version: link:../packages/protocol
       ws:

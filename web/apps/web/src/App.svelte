@@ -1,7 +1,7 @@
 <script lang="ts">
-  import type { Tool } from "@cyberdynecorp/editor";
-  import type { FillStyle } from "@cyberdynecorp/model";
-  import { EditorStore, browserSocket, reconnectingSocket } from "@cyberdynecorp/svelte";
+  import type { Tool } from "@cyberdynecorp/excalidraw-editor";
+  import type { FillStyle } from "@cyberdynecorp/excalidraw-model";
+  import { EditorStore, browserSocket, reconnectingSocket } from "@cyberdynecorp/excalidraw-svelte";
   import Canvas from "./lib/Canvas.svelte";
 
   const store = new EditorStore();

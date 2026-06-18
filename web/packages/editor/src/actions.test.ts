@@ -1,5 +1,5 @@
-import { Point } from "@cyberdynecorp/math";
-import { type ExcalidrawElement, defaultBase } from "@cyberdynecorp/model";
+import { Point } from "@cyberdynecorp/excalidraw-math";
+import { type ExcalidrawElement, defaultBase } from "@cyberdynecorp/excalidraw-model";
 import { describe, expect, it } from "vitest";
 import { pointerEvent } from "./pointer-event.js";
 import { makeEditor } from "./test-helpers.js";

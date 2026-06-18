@@ -1,5 +1,5 @@
 {
-  "name": "@cyberdynecorp/protocol",
+  "name": "@cyberdynecorp/excalidraw-protocol",
   "version": "0.1.0",
   "description": "Collaboration wire schema + version/versionNonce reconciliation for the WebSocket relay — shared by the web and Swift clients.",
   "type": "module",
@@ -16,7 +16,7 @@
     "build": "tsc -p tsconfig.build.json"
   },
   "dependencies": {
-    "@cyberdynecorp/model": "workspace:*"
+    "@cyberdynecorp/excalidraw-model": "workspace:*"
   },
   "devDependencies": {
     "typescript": "^5.7.2"

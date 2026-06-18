@@ -29,7 +29,7 @@ Object + gap **snapping** with guides, arrow↔shape **binding** (re-routes on m
 **Mermaid → diagram** (paste a flowchart), **tables** (with add-row / add-column), **charts** (double-click to change plot type + data), **sticky notes**, flowchart nodes. The Swift app also renders **live web embeddables** (`WKWebView` behind a host allow-list).
 
 ### Real-time collaboration (iPad ↔ browser)
-A custom WebSocket protocol (`@cyberdynecorp/protocol` / Swift `ExcalidrawCollab`) spoken **byte-identically** by both clients and locked by a shared `Fixtures/protocol/` corpus. A Node relay (`web/server/`) handles rooms, presence, and a scene snapshot for late joiners. Concurrent edits resolve with the model's deterministic, symmetric **`version` / `versionNonce`** last-writer-wins reconciliation — identical on both sides, no central authority or CRDT. Live **peer cursors / selection / tool** presence, per-peer id namespacing, and **auto-reconnect** that resyncs without losing offline edits.
+A custom WebSocket protocol (`@cyberdynecorp/excalidraw-protocol` / Swift `ExcalidrawCollab`) spoken **byte-identically** by both clients and locked by a shared `Fixtures/protocol/` corpus. A Node relay (`web/server/`) handles rooms, presence, and a scene snapshot for late joiners. Concurrent edits resolve with the model's deterministic, symmetric **`version` / `versionNonce`** last-writer-wins reconciliation — identical on both sides, no central authority or CRDT. Live **peer cursors / selection / tool** presence, per-peer id namespacing, and **auto-reconnect** that resyncs without losing offline edits.
 
 ### Files & export
 `.excalidraw` / `.excalidrawlib` round-trip with excalidraw.com (canonical, sorted-key JSON — byte-compatible across both languages); **SVG** export; **PNG** export with **`tEXt` scene-embed round-trip** (re-open a drawing from its exported PNG). The Swift app adds Files-app open/save + **autosave + recents** and an on-disk library.
@@ -40,7 +40,7 @@ A custom WebSocket protocol (`@cyberdynecorp/protocol` / Swift `ExcalidrawCollab
 
 ### Rendering backends
 - **Swift:** Core Graphics (default) + an optional **Metal GPU renderer** (`ExcalidrawMetal`), runtime-switchable with automatic CG fallback; layered static/dynamic split + gesture snapshots; an in-app CPU-vs-GPU benchmark. See [Phase 7.5](docs/ROADMAP.md#phase-75--rendering-acceleration--performance).
-- **Web:** Canvas2D (`@cyberdynecorp/render`) with `roughjs` + `perfect-freehand`; SVG export and PNG scene-embed.
+- **Web:** Canvas2D (`@cyberdynecorp/excalidraw-render`) with `roughjs` + `perfect-freehand`; SVG export and PNG scene-embed.
 
 ---
 
@@ -57,7 +57,7 @@ The risk in maintaining twins is silent drift. Mitigations, enforced in CI:
 In sync with the code; full detail in [docs/ROADMAP.md](docs/ROADMAP.md#known-gaps--deferred-items).
 - **Collaboration tail** — relay scene persistence is **in-memory** (durable / Redis deferred); **end-to-end encryption** and **follow mode** deferred.
 - **Fidelity** — the **bundled Excalidraw font files** aren't committed (loading + family mapping is wired, so dropping the `.ttf/.otf` in takes effect; until then text uses system fallbacks). Hachure fill and perfect-freehand outlines are visually faithful, not line-identical. Canvas2D vs Core Graphics rendering is tolerance-bounded, not pixel-identical (the hand-drawn geometry that produces it is byte-identical).
-- **Web rendering tiers** — a `@cyberdynecorp/render-webgl` GPU tier is deferred (Canvas2D ships); a headless PNG **rasterizer** is deferred (PNG scene-embed metadata round-trips today).
+- **Web rendering tiers** — a `@cyberdynecorp/excalidraw-render-webgl` GPU tier is deferred (Canvas2D ships); a headless PNG **rasterizer** is deferred (PNG scene-embed metadata round-trips today).
 - **Swift documents** — Files-app open/save + autosave + recents rather than a full `DocumentGroup` browser-on-launch.
 
 ---
@@ -72,9 +72,9 @@ excalidraw-swift/
 │   ├── ExcalidrawEditor · ExcalidrawCollab · ExcalidrawUI
 ├── App/                the SwiftUI app shell (ExcalidrawApp)
 ├── web/                TypeScript + Svelte 5 twin (pnpm workspace)
-│   ├── packages/       @cyberdynecorp/math · model · geometry · render · editor · svelte · protocol
+│   ├── packages/       @cyberdynecorp/excalidraw-math · model · geometry · render · editor · svelte · protocol
 │   ├── apps/web/       the browser app (Vite + Svelte 5)
-│   └── server/         @cyberdynecorp/server — Node WebSocket relay
+│   └── server/         @cyberdynecorp/excalidraw-relay — Node WebSocket relay
 ├── openspec/specs/     language-neutral baseline specs (the shared contract)
 ├── Fixtures/           shared golden fixtures (scenes, rough seeds, protocol wire)
 └── docs/               investigation, plan, roadmaps
@@ -88,7 +88,7 @@ Layered, framework-light core (pure Swift, simulator-independent) under a thin S
 (`ExcalidrawEditor` is the pure, UIKit-free editor state machine; `ExcalidrawCollab` is the collaboration client + protocol; `ExcalidrawMetal` is the optional GPU renderer behind the same `SceneRendering` protocol as the Core Graphics `SceneRenderer`. All bridged to SwiftUI by `ExcalidrawUI`'s `EditorModel`.)
 
 ### Web architecture
-A pure TS core under a thin Svelte 5 runes layer, mirroring the Swift split: `@cyberdynecorp/editor` (pure state machine) under `@cyberdynecorp/svelte` (`EditorStore` runes bridge), with `@cyberdynecorp/render` (Canvas2D), `@cyberdynecorp/protocol` (collaboration), and the `@cyberdynecorp/server` relay.
+A pure TS core under a thin Svelte 5 runes layer, mirroring the Swift split: `@cyberdynecorp/excalidraw-editor` (pure state machine) under `@cyberdynecorp/excalidraw-svelte` (`EditorStore` runes bridge), with `@cyberdynecorp/excalidraw-render` (Canvas2D), `@cyberdynecorp/excalidraw-protocol` (collaboration), and the `@cyberdynecorp/excalidraw-relay` relay.
 
 ---
 
@@ -104,9 +104,9 @@ Both implementations are packaged for reuse in other projects.
   //npm.pkg.github.com/:_authToken=${GITHUB_TOKEN}
   ```
   ```sh
-  npm install @cyberdynecorp/model @cyberdynecorp/editor    # headless engine
-  npm install @cyberdynecorp/svelte                          # reactive store (pulls the rest)
-  npm install @cyberdynecorp/protocol @cyberdynecorp/server  # collaboration
+  npm install @cyberdynecorp/excalidraw-model @cyberdynecorp/excalidraw-editor    # headless engine
+  npm install @cyberdynecorp/excalidraw-svelte                          # reactive store (pulls the rest)
+  npm install @cyberdynecorp/excalidraw-protocol @cyberdynecorp/excalidraw-relay  # collaboration
   ```
   Packages: `math · model · geometry · render · editor · svelte · protocol · server`. See [web/README.md](web/README.md#install-github-packages) for usage + the maintainer publish flow.
 

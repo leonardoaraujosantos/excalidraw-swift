@@ -1,5 +1,5 @@
-import { Point } from "@cyberdynecorp/math";
-import { Viewport } from "@cyberdynecorp/render";
+import { Point } from "@cyberdynecorp/excalidraw-math";
+import { Viewport } from "@cyberdynecorp/excalidraw-render";
 import { describe, expect, it } from "vitest";
 import { EditorStore } from "./editor-store.js";
 

@@ -12,16 +12,16 @@
     "e2e:report": "playwright show-report"
   },
   "dependencies": {
-    "@cyberdynecorp/editor": "workspace:*",
-    "@cyberdynecorp/math": "workspace:*",
-    "@cyberdynecorp/model": "workspace:*",
-    "@cyberdynecorp/render": "workspace:*",
-    "@cyberdynecorp/svelte": "workspace:*"
+    "@cyberdynecorp/excalidraw-editor": "workspace:*",
+    "@cyberdynecorp/excalidraw-math": "workspace:*",
+    "@cyberdynecorp/excalidraw-model": "workspace:*",
+    "@cyberdynecorp/excalidraw-render": "workspace:*",
+    "@cyberdynecorp/excalidraw-svelte": "workspace:*"
   },
   "devDependencies": {
     "@playwright/test": "^1.49.1",
     "@sveltejs/vite-plugin-svelte": "^5.0.3",
-    "@cyberdynecorp/server": "workspace:*",
+    "@cyberdynecorp/excalidraw-relay": "workspace:*",
     "svelte": "^5.19.0",
     "svelte-check": "^4.1.4",
     "typescript": "^5.7.2",

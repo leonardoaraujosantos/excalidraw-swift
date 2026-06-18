@@ -1,5 +1,5 @@
 {
-  "name": "@cyberdynecorp/model",
+  "name": "@cyberdynecorp/excalidraw-model",
   "version": "0.1.0",
   "description": "Element schema, scene, history, and .excalidraw/.excalidrawlib codecs — ported from ExcalidrawModel.",
   "type": "module",

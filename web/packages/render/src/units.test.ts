@@ -1,4 +1,4 @@
-import { Point } from "@cyberdynecorp/math";
+import { Point } from "@cyberdynecorp/excalidraw-math";
 import { describe, expect, it } from "vitest";
 import { elementDrawable } from "./element-drawable.js";
 import { buildRoughOptions } from "./rough-options.js";

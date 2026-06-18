@@ -1,4 +1,4 @@
-import type { ExcalidrawElement } from "@cyberdynecorp/model";
+import type { ExcalidrawElement } from "@cyberdynecorp/excalidraw-model";
 
 /**
  * Decide whether a `remote` element should replace the `local` one with the

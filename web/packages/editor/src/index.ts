@@ -7,7 +7,7 @@ export {
   pointerEvent,
 } from "./pointer-event.js";
 export { MIN_SIZE, Transform, type TransformHandle } from "./transform.js";
-export { isPolylineShape } from "@cyberdynecorp/geometry";
+export { isPolylineShape } from "@cyberdynecorp/excalidraw-geometry";
 export {
   type Alignment,
   EditorController,
@@ -15,4 +15,4 @@ export {
   type ZOrder,
 } from "./controller.js";
 export { parseMermaid } from "./mermaid.js";
-export type { RecognizedShape } from "@cyberdynecorp/geometry";
+export type { RecognizedShape } from "@cyberdynecorp/excalidraw-geometry";

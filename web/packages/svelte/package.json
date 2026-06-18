@@ -1,7 +1,7 @@
 {
-  "name": "@cyberdynecorp/svelte",
+  "name": "@cyberdynecorp/excalidraw-svelte",
   "version": "0.1.0",
-  "description": "Reactive editor store + Svelte 5 bridge over @cyberdynecorp/editor and @cyberdynecorp/render.",
+  "description": "Reactive editor store + Svelte 5 bridge over @cyberdynecorp/excalidraw-editor and @cyberdynecorp/excalidraw-render.",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -16,16 +16,16 @@
     "build": "tsc -p tsconfig.build.json"
   },
   "dependencies": {
-    "@cyberdynecorp/editor": "workspace:*",
-    "@cyberdynecorp/geometry": "workspace:*",
-    "@cyberdynecorp/math": "workspace:*",
-    "@cyberdynecorp/model": "workspace:*",
-    "@cyberdynecorp/protocol": "workspace:*",
-    "@cyberdynecorp/render": "workspace:*"
+    "@cyberdynecorp/excalidraw-editor": "workspace:*",
+    "@cyberdynecorp/excalidraw-geometry": "workspace:*",
+    "@cyberdynecorp/excalidraw-math": "workspace:*",
+    "@cyberdynecorp/excalidraw-model": "workspace:*",
+    "@cyberdynecorp/excalidraw-protocol": "workspace:*",
+    "@cyberdynecorp/excalidraw-render": "workspace:*"
   },
   "devDependencies": {
     "@types/ws": "^8.5.13",
-    "@cyberdynecorp/server": "workspace:*",
+    "@cyberdynecorp/excalidraw-relay": "workspace:*",
     "typescript": "^5.7.2",
     "ws": "^8.18.0"
   },

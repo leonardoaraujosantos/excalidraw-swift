@@ -1,4 +1,4 @@
-import { Point } from "@cyberdynecorp/math";
+import { Point } from "@cyberdynecorp/excalidraw-math";
 
 /** The allowed zoom range. */
 export const ZOOM_RANGE = { min: 0.1, max: 30 } as const;

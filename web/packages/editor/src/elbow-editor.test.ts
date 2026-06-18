@@ -1,10 +1,10 @@
-import { Point } from "@cyberdynecorp/math";
+import { Point } from "@cyberdynecorp/excalidraw-math";
 import {
   type ArrowElement,
   type ExcalidrawElement,
   Scene,
   defaultBase,
-} from "@cyberdynecorp/model";
+} from "@cyberdynecorp/excalidraw-model";
 import { describe, expect, it } from "vitest";
 import { EditorController } from "./controller.js";
 import { pointerEvent } from "./pointer-event.js";

@@ -1,4 +1,4 @@
-import { type Scene, SceneDocument } from "@cyberdynecorp/model";
+import { type Scene, SceneDocument } from "@cyberdynecorp/excalidraw-model";
 
 const KEYWORD = "excalidraw";
 const SIGNATURE = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a];

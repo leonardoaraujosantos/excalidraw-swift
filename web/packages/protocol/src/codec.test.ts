@@ -1,4 +1,4 @@
-import { type ExcalidrawElement, defaultBase } from "@cyberdynecorp/model";
+import { type ExcalidrawElement, defaultBase } from "@cyberdynecorp/excalidraw-model";
 import { describe, expect, it } from "vitest";
 import { ProtocolError, decode, encode, isMessage, message } from "./codec.js";
 import { type Message, PROTOCOL_VERSION } from "./messages.js";

@@ -1,5 +1,5 @@
-import type { ExcalidrawElement } from "@cyberdynecorp/model";
-import { semanticEqual } from "@cyberdynecorp/model";
+import type { ExcalidrawElement } from "@cyberdynecorp/excalidraw-model";
+import { semanticEqual } from "@cyberdynecorp/excalidraw-model";
 import type { BoundingBox } from "./bounding-box.js";
 import { bounds } from "./element-geometry.js";
 

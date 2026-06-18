@@ -1,4 +1,4 @@
-import { type Message, decode, encode } from "@cyberdynecorp/protocol";
+import { type Message, decode, encode } from "@cyberdynecorp/excalidraw-protocol";
 import { type WebSocket, WebSocketServer } from "ws";
 import { type Outbound, RelayCore } from "./relay-core.js";
 
@@ -11,7 +11,7 @@ export interface RelayHandle {
 
 /**
  * Start the collaboration relay on `port` (use 0 for an ephemeral port in
- * tests). A raw WebSocket server: every frame is a JSON `@cyberdynecorp/protocol` message;
+ * tests). A raw WebSocket server: every frame is a JSON `@cyberdynecorp/excalidraw-protocol` message;
  * malformed frames are dropped, valid ones are handed to {@link RelayCore} and
  * its {@link Outbound} batches are fanned out to the addressed connections.
  */

@@ -1,4 +1,4 @@
-import { type Message, decode, encode, message } from "@cyberdynecorp/protocol";
+import { type Message, decode, encode, message } from "@cyberdynecorp/excalidraw-protocol";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { WebSocket } from "ws";
 import { type RelayHandle, startRelay } from "./server.js";

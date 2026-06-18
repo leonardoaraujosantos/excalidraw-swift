@@ -1,6 +1,6 @@
-import { type ExcalidrawElement, defaultBase } from "@cyberdynecorp/model";
-import { encode, message, reconcileElements } from "@cyberdynecorp/protocol";
-import { type RelayHandle, startRelay } from "@cyberdynecorp/server";
+import { type ExcalidrawElement, defaultBase } from "@cyberdynecorp/excalidraw-model";
+import { encode, message, reconcileElements } from "@cyberdynecorp/excalidraw-protocol";
+import { type RelayHandle, startRelay } from "@cyberdynecorp/excalidraw-relay";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { WebSocket } from "ws";
 import { CollabSession, type CollabSocket, reconnectingSocket } from "./collab-session.js";
@@ -165,7 +165,7 @@ describe("collaboration end-to-end (simulated devices)", () => {
     const web = device("web");
     await until(() => web.session.you !== null);
 
-    // A bare ws client that speaks @cyberdynecorp/protocol directly — no CollabSession.
+    // A bare ws client that speaks @cyberdynecorp/excalidraw-protocol directly — no CollabSession.
     const raw = new WebSocket(url);
     await new Promise<void>((resolve) => raw.on("open", () => resolve()));
     raw.send(

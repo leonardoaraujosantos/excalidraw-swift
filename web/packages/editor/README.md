@@ -1,4 +1,4 @@
-# @cyberdynecorp/editor
+# @cyberdynecorp/excalidraw-editor
 
 The pure editor state machine — tools, selection, transform, undo — ported from ExcalidrawEditor.
 
@@ -7,7 +7,7 @@ Part of the **[Excalidraw — Native Swift + TypeScript/Svelte port](https://git
 ## Install
 
 ```sh
-npm install @cyberdynecorp/editor
+npm install @cyberdynecorp/excalidraw-editor
 ```
 
 ESM-only. See the [monorepo README](https://github.com/leonardoaraujosantos/excalidraw-swift#readme) for the full package list and usage.

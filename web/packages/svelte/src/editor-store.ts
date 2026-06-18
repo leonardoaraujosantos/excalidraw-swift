@@ -5,8 +5,8 @@ import {
   type PointerType,
   type Tool,
   pointerEvent,
-} from "@cyberdynecorp/editor";
-import { Point } from "@cyberdynecorp/math";
+} from "@cyberdynecorp/excalidraw-editor";
+import { Point } from "@cyberdynecorp/excalidraw-math";
 import {
   type ExcalidrawElement,
   type FillStyle,
@@ -14,9 +14,9 @@ import {
   Scene,
   SceneDocument,
   type StrokeStyle,
-} from "@cyberdynecorp/model";
-import type { Peer } from "@cyberdynecorp/protocol";
-import { reconcileElements } from "@cyberdynecorp/protocol";
+} from "@cyberdynecorp/excalidraw-model";
+import type { Peer } from "@cyberdynecorp/excalidraw-protocol";
+import { reconcileElements } from "@cyberdynecorp/excalidraw-protocol";
 import {
   type RenderContext,
   type Theme,
@@ -25,7 +25,7 @@ import {
   renderOverlay as drawOverlay,
   exportSvg,
   renderScene,
-} from "@cyberdynecorp/render";
+} from "@cyberdynecorp/excalidraw-render";
 import { CollabSession, type CollabSocket, type RemoteCursor } from "./collab-session.js";
 import { TrailStore } from "./trail-store.js";
 

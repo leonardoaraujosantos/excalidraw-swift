@@ -1,6 +1,6 @@
-import { BoundingBox, ShapeGenerator } from "@cyberdynecorp/geometry";
-import { Point } from "@cyberdynecorp/math";
-import { type ExcalidrawElement, Scene, defaultBase } from "@cyberdynecorp/model";
+import { BoundingBox, ShapeGenerator } from "@cyberdynecorp/excalidraw-geometry";
+import { Point } from "@cyberdynecorp/excalidraw-math";
+import { type ExcalidrawElement, Scene, defaultBase } from "@cyberdynecorp/excalidraw-model";
 import { describe, expect, it } from "vitest";
 import { EditorController } from "./controller.js";
 

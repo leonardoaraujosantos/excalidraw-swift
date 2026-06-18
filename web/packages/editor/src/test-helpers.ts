@@ -1,5 +1,5 @@
-import type { Point } from "@cyberdynecorp/math";
-import { type ExcalidrawElement, Scene, defaultBase } from "@cyberdynecorp/model";
+import type { Point } from "@cyberdynecorp/excalidraw-math";
+import { type ExcalidrawElement, Scene, defaultBase } from "@cyberdynecorp/excalidraw-model";
 import { EditorController } from "./controller.js";
 import { type PointerType, pointerEvent } from "./pointer-event.js";
 

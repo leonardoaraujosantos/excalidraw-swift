@@ -1,5 +1,5 @@
-import { Ellipse, LineSegment, PRECISION, Point, Polygon } from "@cyberdynecorp/math";
-import type { ExcalidrawElement } from "@cyberdynecorp/model";
+import { Ellipse, LineSegment, PRECISION, Point, Polygon } from "@cyberdynecorp/excalidraw-math";
+import type { ExcalidrawElement } from "@cyberdynecorp/excalidraw-model";
 import type { BoundingBox } from "./bounding-box.js";
 import { absoluteCoords, bounds, isPathALoop, unrotatedOutline } from "./element-geometry.js";
 

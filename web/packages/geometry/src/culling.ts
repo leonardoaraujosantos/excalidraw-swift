@@ -1,4 +1,4 @@
-import type { ExcalidrawElement } from "@cyberdynecorp/model";
+import type { ExcalidrawElement } from "@cyberdynecorp/excalidraw-model";
 import { BoundingBox } from "./bounding-box.js";
 import { bounds } from "./element-geometry.js";
 

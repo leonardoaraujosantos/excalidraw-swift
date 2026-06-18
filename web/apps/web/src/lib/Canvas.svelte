@@ -1,7 +1,7 @@
 <script lang="ts">
-  import { Point } from "@cyberdynecorp/math";
-  import type { EditorStore } from "@cyberdynecorp/svelte";
-  import type { PointerType } from "@cyberdynecorp/editor";
+  import { Point } from "@cyberdynecorp/excalidraw-math";
+  import type { EditorStore } from "@cyberdynecorp/excalidraw-svelte";
+  import type { PointerType } from "@cyberdynecorp/excalidraw-editor";
 
   let { store, rev }: { store: EditorStore; rev: number } = $props();
 

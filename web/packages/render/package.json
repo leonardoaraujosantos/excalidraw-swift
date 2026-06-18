@@ -1,5 +1,5 @@
 {
-  "name": "@cyberdynecorp/render",
+  "name": "@cyberdynecorp/excalidraw-render",
   "version": "0.1.0",
   "description": "Canvas2D scene renderer, rough.js drawables, and SVG/PNG export — ported from ExcalidrawRender.",
   "type": "module",
@@ -16,9 +16,9 @@
     "build": "tsc -p tsconfig.build.json"
   },
   "dependencies": {
-    "@cyberdynecorp/geometry": "workspace:*",
-    "@cyberdynecorp/math": "workspace:*",
-    "@cyberdynecorp/model": "workspace:*",
+    "@cyberdynecorp/excalidraw-geometry": "workspace:*",
+    "@cyberdynecorp/excalidraw-math": "workspace:*",
+    "@cyberdynecorp/excalidraw-model": "workspace:*",
     "perfect-freehand": "^1.2.2",
     "roughjs": "^4.6.6"
   },

@@ -1,5 +1,5 @@
 {
-  "name": "@cyberdynecorp/geometry",
+  "name": "@cyberdynecorp/excalidraw-geometry",
   "version": "0.1.0",
   "description": "Element-aware geometry — bounds, hit-testing, binding, snapping, culling — ported from ExcalidrawGeometry.",
   "type": "module",
@@ -16,8 +16,8 @@
     "build": "tsc -p tsconfig.build.json"
   },
   "dependencies": {
-    "@cyberdynecorp/math": "workspace:*",
-    "@cyberdynecorp/model": "workspace:*"
+    "@cyberdynecorp/excalidraw-math": "workspace:*",
+    "@cyberdynecorp/excalidraw-model": "workspace:*"
   },
   "devDependencies": {
     "typescript": "^5.7.2"

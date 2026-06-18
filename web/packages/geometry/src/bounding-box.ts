@@ -1,4 +1,4 @@
-import type { Point } from "@cyberdynecorp/math";
+import type { Point } from "@cyberdynecorp/excalidraw-math";
 
 /**
  * Axis-aligned bounding box in scene coordinates — the foundation for culling,

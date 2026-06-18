@@ -10,10 +10,10 @@ The Swift app and the TS/Svelte app are *twins*: they share the same data model,
 
 All phases are implemented and green; this document is kept as the historical plan, annotated with what shipped. Built in the `web/` pnpm workspace (tracked on PR #10):
 
-- **`@cyberdynecorp/math · model · geometry · render · editor · svelte · protocol`** + a Node relay **`server/`** (`@cyberdynecorp/server`), and the **`apps/web`** example exercising every feature.
+- **`@cyberdynecorp/excalidraw-math · model · geometry · render · editor · svelte · protocol`** + a Node relay **`server/`** (`@cyberdynecorp/excalidraw-relay`), and the **`apps/web`** example exercising every feature.
 - **Cross-language parity** enforced in CI: `.excalidraw` round-trip, rough.js op-set parity (TS `roughjs` ⇔ Swift `RoughKit`), canonical-JSON goldens, and byte-identical **protocol** wire fixtures (`Fixtures/protocol/`).
-- **Collaboration (T7):** `@cyberdynecorp/protocol` + relay + version/`versionNonce` reconcile + presence/cursors + auto-reconnect; the Swift twin lives in `Sources/ExcalidrawCollab` and speaks a byte-identical protocol. **An iPad simulator and a browser edit one room live**, automated end-to-end by `web/scripts/collab-live.sh` (XCUITest + Playwright + relay).
-- **Resolved decisions** (§12): polyglot monorepo here; JSON wire (v1) with sorted-key canonical fixtures (Protobuf deferred); reuse `roughjs`/`perfect-freehand`; Vite SPA; plaintext rooms first (E2E encryption deferred). **Deferred tiers:** `@cyberdynecorp/render-webgl` (WebGL), durable/Redis relay persistence, E2E encryption.
+- **Collaboration (T7):** `@cyberdynecorp/excalidraw-protocol` + relay + version/`versionNonce` reconcile + presence/cursors + auto-reconnect; the Swift twin lives in `Sources/ExcalidrawCollab` and speaks a byte-identical protocol. **An iPad simulator and a browser edit one room live**, automated end-to-end by `web/scripts/collab-live.sh` (XCUITest + Playwright + relay).
+- **Resolved decisions** (§12): polyglot monorepo here; JSON wire (v1) with sorted-key canonical fixtures (Protobuf deferred); reuse `roughjs`/`perfect-freehand`; Vite SPA; plaintext rooms first (E2E encryption deferred). **Deferred tiers:** `@cyberdynecorp/excalidraw-render-webgl` (WebGL), durable/Redis relay persistence, E2E encryption.
 
 ---
 
@@ -70,17 +70,17 @@ Alternative: a separate `excalidraw-web` repo that vendors `fixtures/` + `opensp
 
 | Swift module | TS package | Approach | Notes |
 |---|---|---|---|
-| `ExcalidrawMath` | `@cyberdynecorp/math` | **Re-port** | Small, pure, deterministic. Curves/splines/angles/vectors. |
+| `ExcalidrawMath` | `@cyberdynecorp/excalidraw-math` | **Re-port** | Small, pure, deterministic. Curves/splines/angles/vectors. |
 | `RoughKit` (rough.js port) | **`roughjs`** (npm) | **Reuse** | Original lib; Swift already validated parity against it → seeds match. |
 | `FreehandKit` (perfect-freehand port) | **`perfect-freehand`** (npm) | **Reuse** | Original lib. |
-| `ExcalidrawModel` | `@cyberdynecorp/model` | **Re-port** | Element schema, scene, AppState, `.excalidraw`/`.excalidrawlib` codecs, restore, fractional index, history. Must round-trip v2 byte-for-byte with Swift. |
-| `ExcalidrawGeometry` | `@cyberdynecorp/geometry` | **Re-port** | Bounds, hit-test, intersections, snapping, culling, frames, **elbow-arrow A\***, shape generation. |
-| `ExcalidrawRender` (Core Graphics) | `@cyberdynecorp/render` | **Re-port → Canvas2D** | rough.js draws to canvas natively; text via `measureText`/`Path2D`; image+crop; frames; interactive overlay; layered static/dynamic cache; PNG (with `tEXt` scene-embed) + SVG export. |
-| `ExcalidrawMetal` (GPU) | `@cyberdynecorp/render-webgl` | **Defer** | Canvas2D first; a WebGL/WebGPU tier later mirrors the Metal tessellation work. |
-| `ExcalidrawEditor` (pure state machine) | `@cyberdynecorp/editor` | **Re-port** | Tools, selection/transform, undo, generators, smart features, arrows/bindings/elbow. No DOM. |
-| `ExcalidrawUI` (SwiftUI) | `@cyberdynecorp/svelte` | **Rebuild in Svelte 5** | `EditorModel` → a runes store wrapping `@cyberdynecorp/editor`. |
+| `ExcalidrawModel` | `@cyberdynecorp/excalidraw-model` | **Re-port** | Element schema, scene, AppState, `.excalidraw`/`.excalidrawlib` codecs, restore, fractional index, history. Must round-trip v2 byte-for-byte with Swift. |
+| `ExcalidrawGeometry` | `@cyberdynecorp/excalidraw-geometry` | **Re-port** | Bounds, hit-test, intersections, snapping, culling, frames, **elbow-arrow A\***, shape generation. |
+| `ExcalidrawRender` (Core Graphics) | `@cyberdynecorp/excalidraw-render` | **Re-port → Canvas2D** | rough.js draws to canvas natively; text via `measureText`/`Path2D`; image+crop; frames; interactive overlay; layered static/dynamic cache; PNG (with `tEXt` scene-embed) + SVG export. |
+| `ExcalidrawMetal` (GPU) | `@cyberdynecorp/excalidraw-render-webgl` | **Defer** | Canvas2D first; a WebGL/WebGPU tier later mirrors the Metal tessellation work. |
+| `ExcalidrawEditor` (pure state machine) | `@cyberdynecorp/excalidraw-editor` | **Re-port** | Tools, selection/transform, undo, generators, smart features, arrows/bindings/elbow. No DOM. |
+| `ExcalidrawUI` (SwiftUI) | `@cyberdynecorp/excalidraw-svelte` | **Rebuild in Svelte 5** | `EditorModel` → a runes store wrapping `@cyberdynecorp/excalidraw-editor`. |
 | `ExcalidrawApp` | `apps/web` | **New** | Vite SPA / SvelteKit host. |
-| — (new) | `@cyberdynecorp/protocol` | **New** | Shared collaboration schema; Swift speaks the same protocol. |
+| — (new) | `@cyberdynecorp/excalidraw-protocol` | **New** | Shared collaboration schema; Swift speaks the same protocol. |
 
 ---
 
@@ -90,15 +90,15 @@ The 15 baseline specs map onto the TS packages so coverage is auditable:
 
 | OpenSpec capability | Primary TS package |
 |---|---|
-| data-model · file-format · editing-history | `@cyberdynecorp/model` |
-| geometry-and-math | `@cyberdynecorp/math`, `@cyberdynecorp/geometry` |
-| hand-drawn-rendering | `roughjs` + `perfect-freehand` (+ thin adapters in `@cyberdynecorp/render`) |
-| scene-rendering | `@cyberdynecorp/render` (Canvas2D) |
-| metal-rendering | `@cyberdynecorp/render-webgl` (deferred tier) |
-| drawing-tools · selection-and-transform · arrows-and-bindings · smart-features · generators | `@cyberdynecorp/editor` |
-| persistence | `@cyberdynecorp/model` (codecs) + `@cyberdynecorp/svelte` (File System Access API, autosave) |
-| platform-ux | `@cyberdynecorp/svelte` + `apps/web` |
-| collaboration | `@cyberdynecorp/protocol` + `server/` + clients (web `@cyberdynecorp/svelte`, Swift `ExcalidrawCollab`) |
+| data-model · file-format · editing-history | `@cyberdynecorp/excalidraw-model` |
+| geometry-and-math | `@cyberdynecorp/excalidraw-math`, `@cyberdynecorp/excalidraw-geometry` |
+| hand-drawn-rendering | `roughjs` + `perfect-freehand` (+ thin adapters in `@cyberdynecorp/excalidraw-render`) |
+| scene-rendering | `@cyberdynecorp/excalidraw-render` (Canvas2D) |
+| metal-rendering | `@cyberdynecorp/excalidraw-render-webgl` (deferred tier) |
+| drawing-tools · selection-and-transform · arrows-and-bindings · smart-features · generators | `@cyberdynecorp/excalidraw-editor` |
+| persistence | `@cyberdynecorp/excalidraw-model` (codecs) + `@cyberdynecorp/excalidraw-svelte` (File System Access API, autosave) |
+| platform-ux | `@cyberdynecorp/excalidraw-svelte` + `apps/web` |
+| collaboration | `@cyberdynecorp/excalidraw-protocol` + `server/` + clients (web `@cyberdynecorp/excalidraw-svelte`, Swift `ExcalidrawCollab`) |
 
 ---
 
@@ -107,7 +107,7 @@ The 15 baseline specs map onto the TS packages so coverage is auditable:
 - **Language:** TypeScript, `strict` + `noUncheckedIndexedAccess`.
 - **Package manager / monorepo:** pnpm workspaces (+ Turborepo for task graph & caching).
 - **Bundling:** `tsup`/`unbuild` for libraries; **Vite** for the app.
-- **UI:** **Svelte 5 runes** (`$state`, `$derived`, `$effect`). The `EditorModel` equivalent is a runes class holding `$state` scene/viewport/selection and forwarding to `@cyberdynecorp/editor`.
+- **UI:** **Svelte 5 runes** (`$state`, `$derived`, `$effect`). The `EditorModel` equivalent is a runes class holding `$state` scene/viewport/selection and forwarding to `@cyberdynecorp/excalidraw-editor`.
 - **Rendering:** Canvas2D first (`<canvas>` with devicePixelRatio scaling); rough.js renders directly to the 2D context.
 - **Input:** Pointer Events API (covers mouse, touch, **Apple Pencil via `pointerType: "pen"` + `pressure`**), `gesturechange` / two-pointer pinch for pan/zoom, palm rejection by tracking the active pen pointer.
 - **Testing:** **Vitest** (unit), **Playwright** (e2e + visual/golden screenshots).
@@ -123,29 +123,29 @@ Phases mirror the Swift [`docs/ROADMAP.md`](ROADMAP.md) so progress is comparabl
 
 ### T0 — Foundations
 - pnpm workspace, Turborepo, TS strict, Vitest, Playwright, Biome, Changesets, CI skeleton.
-- Port `@cyberdynecorp/math` (points, vectors, angles, numeric utils, ranges, curves/splines).
+- Port `@cyberdynecorp/excalidraw-math` (points, vectors, angles, numeric utils, ranges, curves/splines).
 - Stand up the `fixtures/` directory + the conformance test harness (§8).
-- **Exit:** `@cyberdynecorp/math` at parity with `ExcalidrawMathTests`; CI green; one shared fixture verified in both languages.
+- **Exit:** `@cyberdynecorp/excalidraw-math` at parity with `ExcalidrawMathTests`; CI green; one shared fixture verified in both languages.
 
 ### T1 — Model & file format
-- `@cyberdynecorp/model`: element types (all 13 kinds), scene + indexed access, AppState, `JSONValue`/`customData`, versioned `mutate`, soft-delete, fractional indexing, history (diff/undo/redo), `.excalidraw` v2 + `.excalidrawlib` codecs, lenient `restore`.
+- `@cyberdynecorp/excalidraw-model`: element types (all 13 kinds), scene + indexed access, AppState, `JSONValue`/`customData`, versioned `mutate`, soft-delete, fractional indexing, history (diff/undo/redo), `.excalidraw` v2 + `.excalidrawlib` codecs, lenient `restore`.
 - **Exit:** byte-compatible round-trip with Swift on every fixture; `data-model` / `file-format` / `editing-history` specs satisfied.
 
 ### T2 — Geometry
-- `@cyberdynecorp/geometry`: bounds, outline extraction, point-in-polygon, threshold hit-testing, ellipse/segment/rect/triangle intersections, viewport culling, dirty regions, frame containment, snapping + guides, **elbow-arrow routing (A\*)**, heading quantization, procedural shapes.
+- `@cyberdynecorp/excalidraw-geometry`: bounds, outline extraction, point-in-polygon, threshold hit-testing, ellipse/segment/rect/triangle intersections, viewport culling, dirty regions, frame containment, snapping + guides, **elbow-arrow routing (A\*)**, heading quantization, procedural shapes.
 - Wire in `roughjs` + `perfect-freehand`.
 - **Exit:** `geometry-and-math` + hand-drawn parity fixtures pass.
 
 ### T3 — Rendering (Canvas2D)
-- `@cyberdynecorp/render`: viewport transform, theme/grid/background, element dispatch, op-set drawing, `ElementDrawable`, RoughOptions builder, text layout (with the same font-family mapping/fallbacks), image+crop, frames, interactive overlay, layered static/dynamic cache, PNG (incl. `tEXt` scene-embed) + SVG export.
+- `@cyberdynecorp/excalidraw-render`: viewport transform, theme/grid/background, element dispatch, op-set drawing, `ElementDrawable`, RoughOptions builder, text layout (with the same font-family mapping/fallbacks), image+crop, frames, interactive overlay, layered static/dynamic cache, PNG (incl. `tEXt` scene-embed) + SVG export.
 - **Exit:** `scene-rendering` golden images match Swift within tolerance; PNG re-open round-trips across both clients.
 
 ### T4 — Editor engine
-- `@cyberdynecorp/editor`: tool model + creation, selection/multi-select, move/resize/rotate, group/align/flip/z-order/lock/duplicate, copy/paste, linear point edit, image crop, arrow binding + elbow segment pinning, arrowheads, smart features (object/gap snap, freehand shape recognition + hold-to-snap, flowchart spawning, hyperlinks), generators (Mermaid, tables, charts, sticky notes).
+- `@cyberdynecorp/excalidraw-editor`: tool model + creation, selection/multi-select, move/resize/rotate, group/align/flip/z-order/lock/duplicate, copy/paste, linear point edit, image crop, arrow binding + elbow segment pinning, arrowheads, smart features (object/gap snap, freehand shape recognition + hold-to-snap, flowchart spawning, hyperlinks), generators (Mermaid, tables, charts, sticky notes).
 - **Exit:** `drawing-tools`, `selection-and-transform`, `arrows-and-bindings`, `smart-features`, `generators` specs satisfied; ports of the Swift editor tests pass.
 
 ### T5 — Svelte 5 UI
-- `@cyberdynecorp/svelte` + `apps/web`: runes store bridging `@cyberdynecorp/editor`; pointer/touch/pen input + palm rejection; two-pointer pan/zoom; adaptive layout; toolbar/properties/command palette (⌘K); keyboard shortcuts; color picker (`<input type=color>` / EyeDropper API); arrowhead picker; laser/eraser trails; zoom controls; dark mode; localization + RTL; documents (File System Access API + autosave to IndexedDB/localStorage + recents); web embeds (sandboxed `<iframe>` + host allow-list).
+- `@cyberdynecorp/excalidraw-svelte` + `apps/web`: runes store bridging `@cyberdynecorp/excalidraw-editor`; pointer/touch/pen input + palm rejection; two-pointer pan/zoom; adaptive layout; toolbar/properties/command palette (⌘K); keyboard shortcuts; color picker (`<input type=color>` / EyeDropper API); arrowhead picker; laser/eraser trails; zoom controls; dark mode; localization + RTL; documents (File System Access API + autosave to IndexedDB/localStorage + recents); web embeds (sandboxed `<iframe>` + host allow-list).
 - **Exit:** `persistence` + `platform-ux` specs satisfied; Playwright e2e mirrors the Swift `SmokeUITests` flows.
 
 ### T6 — Parity hardening
@@ -153,7 +153,7 @@ Phases mirror the Swift [`docs/ROADMAP.md`](ROADMAP.md) so progress is comparabl
 - **Exit:** visual diff vs Swift goldens within tolerance; perf acceptable on mid-range hardware.
 
 ### T7 — Phase 8: Collaboration (the goal) — ✅ delivered
-- `@cyberdynecorp/protocol`, `server/` relay, presence/cursors, element sync + reconcile, reconnect; Swift client (`Sources/ExcalidrawCollab`) implements the same protocol. See §9.
+- `@cyberdynecorp/excalidraw-protocol`, `server/` relay, presence/cursors, element sync + reconcile, reconnect; Swift client (`Sources/ExcalidrawCollab`) implements the same protocol. See §9.
 - **Exit (met):** an iPad simulator and a browser edit the same room live — cursors, selections, and elements sync both ways; survives reconnects. Automated by `web/scripts/collab-live.sh`. (In-memory relay snapshot only; durable/Redis persistence deferred.)
 
 ---
@@ -177,7 +177,7 @@ The risk in maintaining two libraries is **silent drift**. Mitigations:
 
 **Transport:** raw WebSocket (no Socket.IO). JSON for v1 (debuggable); upgrade hot paths to MessagePack/binary later.
 
-**Schema source of truth:** define `@cyberdynecorp/protocol` once and generate/mirror the Swift types. Options, in preference order: (a) **Protobuf** (`protoc` → TS + Swift) for a typed binary-ready contract; (b) a TS-first schema (Zod/TypeBox) with a Swift codegen step; (c) hand-maintained types validated by a shared JSON-Schema fixture. Recommend **(a) Protobuf**.
+**Schema source of truth:** define `@cyberdynecorp/excalidraw-protocol` once and generate/mirror the Swift types. Options, in preference order: (a) **Protobuf** (`protoc` → TS + Swift) for a typed binary-ready contract; (b) a TS-first schema (Zod/TypeBox) with a Swift codegen step; (c) hand-maintained types validated by a shared JSON-Schema fixture. Recommend **(a) Protobuf**.
 
 **Message types (sketch):**
 | Message | Direction | Freq | Purpose |
@@ -190,11 +190,11 @@ The risk in maintaining two libraries is **silent drift**. Mitigations:
 | `scene-snapshot` | bidirectional | periodic | full-scene resync for late joiners / drift repair |
 | `ack` / `ping` | bidirectional | heartbeat | liveness + reconnection |
 
-**Reconciliation:** reuse the model's `version` / `versionNonce` / `updated` rule — on receiving an `element-updates`, keep the element with the higher `version` (tie-break on `versionNonce`). This is already implemented in `@cyberdynecorp/model` and the Swift `Scene.mutate`, so both clients converge identically. No separate CRDT needed for v1.
+**Reconciliation:** reuse the model's `version` / `versionNonce` / `updated` rule — on receiving an `element-updates`, keep the element with the higher `version` (tie-break on `versionNonce`). This is already implemented in `@cyberdynecorp/excalidraw-model` and the Swift `Scene.mutate`, so both clients converge identically. No separate CRDT needed for v1.
 
 **Server (`server/`):** stateless Node relay (`ws` or `uWebSockets.js`) — room registry, broadcast fan-out, presence tracking, optional in-memory/Redis scene snapshot for late joiners. Horizontally scalable behind a sticky-room hash. **End-to-end encryption** (room key in the URL fragment, AES-GCM) is an *optional follow-up* layer once plaintext rooms work.
 
-**Swift side:** `URLSessionWebSocketTask` client implementing the same `@cyberdynecorp/protocol` messages; the existing reconcile path consumes `element-updates` directly.
+**Swift side:** `URLSessionWebSocketTask` client implementing the same `@cyberdynecorp/excalidraw-protocol` messages; the existing reconcile path consumes `element-updates` directly.
 
 Each sub-capability (presence, element-sync, persistence/reconnect, encryption) becomes its **own OpenSpec change** at implementation time, adding a `collaboration` spec to the baseline.
 
@@ -219,7 +219,7 @@ Each sub-capability (presence, element-sync, persistence/reconnect, encryption) 
 | Canvas2D ≠ Core Graphics (text metrics, AA) | Tolerance-bounded golden diffs; ship the same font set; pin line-height/measure rules in fixtures |
 | rough.js seed float differences JS↔Swift | Already validated; lock with op-set fixtures |
 | Maintenance cost of a twin | Reuse `roughjs`/`perfect-freehand`; generate protocol types; keep core framework-agnostic |
-| Svelte 5 runes churn / newness | Confine reactivity to `@cyberdynecorp/svelte`; keep `@cyberdynecorp/editor` pure and unit-tested without a DOM |
+| Svelte 5 runes churn / newness | Confine reactivity to `@cyberdynecorp/excalidraw-svelte`; keep `@cyberdynecorp/excalidraw-editor` pure and unit-tested without a DOM |
 | Protocol lock-in | Version the protocol; `room-state` carries a protocol version; design for renegotiation |
 
 ---

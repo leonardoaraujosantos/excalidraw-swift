@@ -1,4 +1,4 @@
-import type { Point } from "@cyberdynecorp/math";
+import type { Point } from "@cyberdynecorp/excalidraw-math";
 
 export interface TrailDot {
   position: Point;

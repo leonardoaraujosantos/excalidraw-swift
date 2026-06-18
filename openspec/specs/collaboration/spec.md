@@ -13,8 +13,8 @@ Implemented by:
   `Sources/ExcalidrawCollab/` (`CollabMessage`, `Reconcile`, `CollabCodec`),
   kept byte-identical by the shared `Fixtures/protocol/*.json` corpus that both
   test suites assert against;
-- the relay: `web/server/` (`@cyberdynecorp/server` `RelayCore` + `ws` adapter);
-- the clients: web `@cyberdynecorp/svelte` `CollabSession` (wired into `EditorStore`) and
+- the relay: `web/server/` (`@cyberdynecorp/excalidraw-relay` `RelayCore` + `ws` adapter);
+- the clients: web `@cyberdynecorp/excalidraw-svelte` `CollabSession` (wired into `EditorStore`) and
   Swift `ExcalidrawCollab.CollabClient` (wired into `EditorModel`);
 - an automated live iPad-simulator ↔ browser session: `web/scripts/collab-live.sh`
   (XCUITest `CollabLiveUITests` + Playwright `collab-live.spec.ts` against one

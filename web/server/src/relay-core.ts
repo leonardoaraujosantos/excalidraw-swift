@@ -1,10 +1,10 @@
-import type { ExcalidrawElement } from "@cyberdynecorp/model";
+import type { ExcalidrawElement } from "@cyberdynecorp/excalidraw-model";
 import {
   type Message,
   PROTOCOL_VERSION,
   type Peer,
   reconcileElements,
-} from "@cyberdynecorp/protocol";
+} from "@cyberdynecorp/excalidraw-protocol";
 
 /** A batch of messages the transport should send to the listed connections. */
 export interface Outbound {
@@ -29,7 +29,7 @@ interface ConnState {
  * factored out so it can be unit-tested without sockets. Every handler takes a
  * connection id + a decoded {@link Message} and returns the {@link Outbound}
  * batches to send — no I/O of its own. The relay keeps a per-room scene snapshot
- * (reconciled with `@cyberdynecorp/protocol`) so a late joiner receives the current scene.
+ * (reconciled with `@cyberdynecorp/excalidraw-protocol`) so a late joiner receives the current scene.
  */
 export class RelayCore {
   private readonly rooms = new Map<string, Room>();
