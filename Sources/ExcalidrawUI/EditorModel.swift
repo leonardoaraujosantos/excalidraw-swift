@@ -32,6 +32,13 @@ public final class EditorModel: ObservableObject {
     public internal(set) var collab: CollabClient?
     /// Sink for outbound element batches — the real client, or a test capture.
     var collabSend: (([ExcalidrawElement]) -> Void)?
+    /// Sinks for the local pointer + presence, for embedders wiring a custom
+    /// collaboration transport (instead of the built-in `collab` client). The
+    /// built-in `startCollab` leaves these nil and broadcasts via `collab`; a
+    /// custom relay sets them through `attachCollabSink` so the local cursor is
+    /// published to peers. Without them an embedder's own cursor is invisible.
+    var collabPointerSink: ((PointerPos) -> Void)?
+    var collabPresenceSink: ((Presence) -> Void)?
     /// Per-element version last broadcast, to send only what changed (and avoid echo).
     var lastBroadcast: [String: Int] = [:]
     /// Remote collaborators in the room.
@@ -129,15 +136,21 @@ public final class EditorModel: ObservableObject {
         }
         revision += 1
 
-        if let collab {
-            collab.sendPointer(PointerPos(x: scenePoint.x, y: scenePoint.y))
-            if phase == .up {
-                collab.sendPresence(Presence(
-                    pointer: PointerPos(x: scenePoint.x, y: scenePoint.y),
-                    selectedIds: Array(controller.selectedIDs),
-                    tool: activeTool.rawValue
-                ))
-            }
+        // Publish the local cursor to peers. The built-in client uses `collab`;
+        // a custom transport (e.g. an app's own relay) uses the sinks. They are
+        // mutually exclusive — `startCollab` sets one path, `attachCollabSink`
+        // the other — so the cursor is sent exactly once.
+        let pos = PointerPos(x: scenePoint.x, y: scenePoint.y)
+        collab?.sendPointer(pos)
+        collabPointerSink?(pos)
+        if phase == .up {
+            let presence = Presence(
+                pointer: pos,
+                selectedIds: Array(controller.selectedIDs),
+                tool: activeTool.rawValue
+            )
+            collab?.sendPresence(presence)
+            collabPresenceSink?(presence)
         }
     }
 

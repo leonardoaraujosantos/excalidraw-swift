@@ -60,6 +60,8 @@ public extension EditorModel {
         collab?.disconnect()
         collab = nil
         collabSend = nil
+        collabPointerSink = nil
+        collabPresenceSink = nil
         remotePeers = []
         remoteCursors = [:]
     }
@@ -81,10 +83,20 @@ public extension EditorModel {
         }
     }
 
-    /// Wire the outbound sink + id namespace (shared by `startCollab` and tests).
-    func attachCollabSink(idPrefix: String, send: @escaping ([ExcalidrawElement]) -> Void) {
+    /// Wire the outbound sinks + id namespace (shared by `startCollab` and tests).
+    /// `sendPointer`/`sendPresence` let an embedder with a custom transport
+    /// publish the local cursor to peers (the built-in `collab` client handles
+    /// this itself, so it omits them).
+    func attachCollabSink(
+        idPrefix: String,
+        send: @escaping ([ExcalidrawElement]) -> Void,
+        sendPointer: ((PointerPos) -> Void)? = nil,
+        sendPresence: ((Presence) -> Void)? = nil
+    ) {
         controller.idPrefix = idPrefix
         collabSend = send
+        collabPointerSink = sendPointer
+        collabPresenceSink = sendPresence
         syncBroadcastBaseline()
     }
 

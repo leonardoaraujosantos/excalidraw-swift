@@ -67,6 +67,29 @@ final class CollabModelTests: XCTestCase {
         XCTAssertTrue(sent.contains { $0.id == localID }) // re-broadcast to the room
     }
 
+    func testBroadcastsLocalPointerAndPresenceThroughSinks() {
+        // Regression: an embedder with a custom transport (no built-in `collab`
+        // client) must still publish its local cursor, or peers can't see where
+        // it is working. The pointer sink fires on every move; presence on .up.
+        let model = EditorModel()
+        var pointers: [PointerPos] = []
+        var presences: [Presence] = []
+        model.attachCollabSink(
+            idPrefix: "me-",
+            send: { _ in },
+            sendPointer: { pointers.append($0) },
+            sendPresence: { presences.append($0) }
+        )
+        model.select(tool: .rectangle)
+        model.pointer(.down, at: CGPoint(x: 10, y: 10))
+        model.pointer(.move, at: CGPoint(x: 40, y: 30))
+        model.pointer(.up, at: CGPoint(x: 60, y: 40))
+
+        XCTAssertEqual(pointers.count, 3) // down + move + up
+        XCTAssertEqual(pointers.last?.x, 60)
+        XCTAssertEqual(presences.count, 1) // presence published once, on pointer up
+    }
+
     func testIdPrefixNamespacesIds() throws {
         let alice = EditorModel()
         alice.attachCollabSink(idPrefix: "alice-") { _ in }
