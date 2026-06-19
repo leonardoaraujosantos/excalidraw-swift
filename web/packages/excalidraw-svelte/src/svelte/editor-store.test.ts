@@ -47,6 +47,10 @@ class RecordingContext {
   fillText() {
     this.fillTextCount++;
   }
+  drawImageCount = 0;
+  drawImage() {
+    this.drawImageCount++;
+  }
 }
 
 describe("EditorStore", () => {

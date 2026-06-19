@@ -11,6 +11,22 @@
   let height = $state(600);
   let down = false;
 
+  // Bitmap cache for image elements: the pure renderer delegates image drawing
+  // to the host (it can't load bitmaps synchronously). Load each file's dataURL
+  // once and redraw when it's ready; until then the image is skipped that frame.
+  const imageCache = new Map<string, HTMLImageElement>();
+  function imageFor(fileId: string): CanvasImageSource | null {
+    const cached = imageCache.get(fileId);
+    if (cached !== undefined) return cached.complete && cached.naturalWidth > 0 ? cached : null;
+    const file = store.scene.files[fileId];
+    if (file === undefined) return null;
+    const img = new Image();
+    img.onload = () => draw();
+    img.src = file.dataURL;
+    imageCache.set(fileId, img);
+    return null; // not decoded yet; onload triggers a redraw
+  }
+
   function draw(): void {
     if (canvas === undefined) return;
     const dpr = window.devicePixelRatio || 1;
@@ -20,7 +36,7 @@
     if (ctx === null) return;
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     const rc = ctx as unknown as Parameters<EditorStore["render"]>[0];
-    store.render(rc, width, height);
+    store.render(rc, width, height, imageFor);
     store.renderOverlay(rc, width, height);
   }
 

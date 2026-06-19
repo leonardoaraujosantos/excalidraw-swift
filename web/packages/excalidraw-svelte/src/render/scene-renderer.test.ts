@@ -64,6 +64,10 @@ class RecordingContext implements RenderContext {
     this.fillTextCount++;
     this.lastTextOrigin = [this.tx + x, this.ty + y];
   }
+  drawImageCount = 0;
+  drawImage() {
+    this.drawImageCount++;
+  }
 }
 
 const opts = (overrides = {}) => ({
@@ -73,7 +77,41 @@ const opts = (overrides = {}) => ({
   ...overrides,
 });
 
+const imageElement = (): ExcalidrawElement =>
+  ({
+    ...defaultBase("img", { x: 10, y: 10, width: 80, height: 60 }),
+    type: "image",
+    fileId: "f1",
+    status: "saved",
+    scale: [1, 1],
+    crop: null,
+  }) as ExcalidrawElement;
+
+const imageScene = () =>
+  new Scene(
+    [imageElement()],
+    {},
+    { f1: { id: "f1", mimeType: "image/png", dataURL: "data:,", created: 0 } },
+  );
+
 describe("scene renderer", () => {
+  it("draws an image via the host-provided bitmap resolver", () => {
+    // Regression: the renderer used to skip images entirely (`case image: break`),
+    // and the web host never drew them — so inserted images were invisible.
+    const ctx = new RecordingContext();
+    renderScene(ctx, imageScene(), opts({ images: () => ({}) as CanvasImageSource }));
+    expect(ctx.drawImageCount).toBe(1);
+  });
+
+  it("skips an image whose bitmap isn't ready (no resolver / not loaded)", () => {
+    const a = new RecordingContext();
+    renderScene(a, imageScene(), opts()); // no resolver
+    expect(a.drawImageCount).toBe(0);
+    const b = new RecordingContext();
+    renderScene(b, imageScene(), opts({ images: () => null })); // not loaded yet
+    expect(b.drawImageCount).toBe(0);
+  });
+
   it("paints the background once", () => {
     const ctx = new RecordingContext();
     renderScene(ctx, new Scene([]), opts());
