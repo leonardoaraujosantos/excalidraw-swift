@@ -656,10 +656,21 @@ export class EditorStore {
 
   // MARK: Render + documents
 
-  render(ctx: RenderContext, width: number, height: number): void {
+  render(
+    ctx: RenderContext,
+    width: number,
+    height: number,
+    images?: (fileId: string) => CanvasImageSource | null,
+  ): void {
     this.canvasWidth = width;
     this.canvasHeight = height;
-    renderScene(ctx, this.scene, { viewport: this.viewport, width, height, theme: this.theme });
+    renderScene(ctx, this.scene, {
+      viewport: this.viewport,
+      width,
+      height,
+      theme: this.theme,
+      images,
+    });
   }
 
   /** Draw the interactive overlay (selection, handles, marquee, edit handles, trails). */

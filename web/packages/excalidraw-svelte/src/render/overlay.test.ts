@@ -45,6 +45,7 @@ class RecordingContext implements RenderContext {
   }
   setLineDash() {}
   fillText() {}
+  drawImage() {}
 }
 
 const opts = (over: Partial<Parameters<typeof renderOverlay>[1]> = {}) => ({

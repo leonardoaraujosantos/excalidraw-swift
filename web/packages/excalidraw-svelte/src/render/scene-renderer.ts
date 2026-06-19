@@ -28,6 +28,7 @@ export interface RenderContext extends PathSink {
   arc(x: number, y: number, radius: number, startAngle: number, endAngle: number): void;
   setLineDash(segments: number[]): void;
   fillText(text: string, x: number, y: number): void;
+  drawImage(image: CanvasImageSource, dx: number, dy: number, dw: number, dh: number): void;
   fillStyle: string;
   strokeStyle: string;
   lineWidth: number;
@@ -45,6 +46,10 @@ export interface RenderOptions {
   height: number;
   theme?: Theme;
   gridSize?: number;
+  /** Resolve a loaded bitmap for an image element's `fileId`. The host owns the
+   * (async) image cache and redraws once a bitmap finishes loading; images whose
+   * bitmap isn't ready yet (or off a non-DOM renderer) are skipped this frame. */
+  images?: (fileId: string) => CanvasImageSource | null;
 }
 
 function backgroundColor(scene: Scene, theme: Theme): string {
@@ -265,8 +270,20 @@ export function renderScene(ctx: RenderContext, scene: Scene, opts: RenderOption
       case "magicframe":
         drawFrame(ctx, el);
         break;
-      case "image":
-        break; // image bitmaps are drawn by the host
+      case "image": {
+        // The ctx is already translated to (el.x, el.y) and rotated. Draw the
+        // host-resolved bitmap into the element's box, honouring scale (flip).
+        const bitmap = el.fileId !== null ? (opts.images?.(el.fileId) ?? null) : null;
+        if (bitmap !== null) {
+          const [sx, sy] = el.scale ?? [1, 1];
+          if (sx < 0 || sy < 0) {
+            ctx.translate(sx < 0 ? el.width : 0, sy < 0 ? el.height : 0);
+            ctx.scale(sx < 0 ? -1 : 1, sy < 0 ? -1 : 1);
+          }
+          ctx.drawImage(bitmap, 0, 0, el.width, el.height);
+        }
+        break;
+      }
       case "arrow":
         drawDrawable(ctx, el);
         drawArrowheads(ctx, el);
