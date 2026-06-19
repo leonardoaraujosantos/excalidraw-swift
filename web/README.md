@@ -115,8 +115,8 @@ pnpm --filter excalidraw-web-app e2e                                # screenshot
 - **T3 — Rendering (in progress):** `@cyberdynecorp/excalidraw-svelte/render` ported from `ExcalidrawRender`
   — `Viewport`, rough.js option builder + element drawables (via the real
   `roughjs`), op-set → SVG-path / canvas-path serialization, a Canvas2D
-  `renderScene` (drawables, perfect-freehand freedraw, text, frames, viewport
-  culling), full **SVG export**, and **PNG scene-embed** round-trip
+  `renderScene` (drawables, perfect-freehand freedraw, text, frames, images via
+  a host bitmap resolver, viewport culling), full **SVG export**, and **PNG scene-embed** round-trip
   (`tEXt` chunk + CRC-32). 27 tests, incl. the renderer verified against a
   recording mock 2D context. Still to port: the interactive overlay and the
   PNG rasterizer (needs a real/headless canvas).

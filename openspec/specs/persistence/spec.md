@@ -141,6 +141,24 @@ The system SHALL render a scene to an SVG string (default 16pt padding) with a b
 - WHEN it is rendered to SVG
 - THEN its `<g>` transform SHALL include `rotate(` (src: Tests/ExcalidrawRenderTests/SVGExportTests.swift:44)
 
+### Requirement: Share / save / copy the `.excalidraw`
+
+The system SHALL offer, from the editor's export control, sharing the current
+scene as a `.excalidraw` document — presenting the system share sheet over a
+temporary `.excalidraw` file (so it can be sent via AirDrop/Messages/Mail or
+saved to Files) and copying the `.excalidraw` JSON text to the clipboard. (src: Sources/ExcalidrawUI/EditorView.swift, Sources/ExcalidrawUI/EditorModel.swift)
+
+#### Scenario: Share a `.excalidraw` file
+- GIVEN a non-empty scene
+- WHEN the user picks "Send / Save .excalidraw…"
+- THEN a temporary `.excalidraw` file SHALL be written and the system share
+  sheet presented over it (AirDrop / Messages / Mail / Save to Files).
+
+#### Scenario: Copy the `.excalidraw` as text
+- GIVEN a scene
+- WHEN the user picks "Copy as text"
+- THEN the `.excalidraw` JSON SHALL be placed on the clipboard.
+
 ### Requirement: No DocumentGroup browser
 The system SHALL NOT present a `DocumentGroup` document picker on launch; instead it SHALL launch directly into a single blank or autosaved `EditorView`, with document access provided through the manual Open… button and the recents list. (src: App/ExcalidrawApp.swift:12)
 

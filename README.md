@@ -5,7 +5,7 @@ Two from-scratch ports of [Excalidraw](https://excalidraw.com), built as **twins
 - **Native iOS / iPadOS** in **Swift / SwiftUI** (`Sources/`, `App/`) — first-class Apple Pencil, finger-friendly UX, Core Graphics + an optional **Metal** GPU renderer.
 - **Web** in **TypeScript + Svelte 5** (`web/` pnpm workspace) — Canvas2D, reusing the upstream `roughjs` / `perfect-freehand` the Swift side re-ported.
 
-> **Status: both implementations feature-complete, and real-time iPad ↔ browser collaboration is delivered.** An iPad simulator and a browser join one room over a Node relay and converge live — verified end-to-end (XCUITest + Playwright). **599 Swift tests** (~92% logic coverage) · **409 web unit tests + 16 Playwright E2E** · CI green on both pipelines. Remaining work is a small set of tracked gaps — see **[Known gaps](#known-gaps)**.
+> **Status: both implementations feature-complete, and real-time iPad ↔ browser collaboration is delivered.** An iPad simulator and a browser join one room over a Node relay and converge live — verified end-to-end (XCUITest + Playwright). **600+ Swift tests** (~92% logic coverage) · **444 web unit tests + 18 Playwright E2E** · CI green on both pipelines. Remaining work is a small set of tracked gaps — see **[Known gaps](#known-gaps)**.
 
 ---
 
@@ -32,7 +32,7 @@ Object + gap **snapping** with guides, arrow↔shape **binding** (re-routes on m
 A custom WebSocket protocol (`@cyberdynecorp/excalidraw-svelte/protocol` / Swift `ExcalidrawCollab`) spoken **byte-identically** by both clients and locked by a shared `Fixtures/protocol/` corpus. A Node relay (`web/server/`) handles rooms, presence, and a scene snapshot for late joiners. Concurrent edits resolve with the model's deterministic, symmetric **`version` / `versionNonce`** last-writer-wins reconciliation — identical on both sides, no central authority or CRDT. Live **peer cursors / selection / tool** presence, per-peer id namespacing, and **auto-reconnect** that resyncs without losing offline edits.
 
 ### Files & export
-`.excalidraw` / `.excalidrawlib` round-trip with excalidraw.com (canonical, sorted-key JSON — byte-compatible across both languages); **SVG** export; **PNG** export with **`tEXt` scene-embed round-trip** (re-open a drawing from its exported PNG). The Swift app adds Files-app open/save + **autosave + recents** and an on-disk library.
+`.excalidraw` / `.excalidrawlib` round-trip with excalidraw.com (canonical, sorted-key JSON — byte-compatible across both languages); **SVG** export; **PNG** export with **`tEXt` scene-embed round-trip** (re-open a drawing from its exported PNG). The Swift app adds Files-app open/save, **share / Save-to-Files / copy-as-text of the `.excalidraw`** (system share sheet), **autosave + recents**, and an on-disk library.
 
 ### Platform polish
 - **Swift app:** size-class-adaptive iPhone/iPad UI, dark mode, zen mode, command palette, hardware-keyboard shortcuts, two-finger pan/zoom, palm rejection, **Apple Pencil hover (17.5+) & Pencil Pro squeeze**, **laser pointer** + animated eraser trail, arrowhead-type picker, custom color picker (+ system eyedropper), localization (en/es/ar incl. RTL).

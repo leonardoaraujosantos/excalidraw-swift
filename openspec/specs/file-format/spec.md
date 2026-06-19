@@ -62,6 +62,14 @@ The system SHALL accept `.excalidraw` files from earlier schema versions and wit
 - WHEN it is restored
 - THEN each element SHALL receive a fractional index that sorts in document order, while existing indices are preserved (src: Tests/ExcalidrawModelTests/RestoreAndSceneTests.swift:12)
 
+#### Scenario: Duplicate element ids are healed on restore
+- GIVEN a loaded file containing two elements that share the same `id` (e.g. a
+  document corrupted by an earlier id-collision before that bug was fixed)
+- WHEN it is restored
+- THEN the first occurrence SHALL keep its id and each later twin SHALL be
+  reassigned a fresh unique id, so every element stays individually
+  addressable/selectable/deletable (src: Sources/ExcalidrawModel/Restore.swift, Tests/ExcalidrawModelTests/RestoreAndSceneTests.swift)
+
 ### Requirement: .excalidrawlib library format
 The system SHALL encode and decode `.excalidrawlib` libraries, SHALL read both the V1 (flat/legacy `library: [[element, ...], ...]`) and V2 (`"type":"excalidrawlib"`, `libraryItems` with `id`/`status`/`created`/`name`/`elements`) shapes, SHALL write V2, and SHALL handle empty libraries. (src: Sources/ExcalidrawModel/ExcalidrawLibrary.swift:1, Sources/ExcalidrawModel/LibraryStore.swift:22)
 

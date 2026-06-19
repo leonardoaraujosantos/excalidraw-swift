@@ -116,6 +116,14 @@ The system SHALL render images by decoding the data URL (cached by `fileId`), cr
 - WHEN it is rendered
 - THEN the cropped sub-region SHALL be scaled to the element rect and flipped for y-down (src: Sources/ExcalidrawRender/SceneRenderer.swift:355)
 
+#### Scenario: Web renders images via a host bitmap resolver
+- GIVEN the web Canvas2D renderer, whose pure render pass cannot load bitmaps synchronously
+- WHEN it reaches an image element
+- THEN it SHALL draw the bitmap supplied by the host's `images(fileId)` resolver
+  into the element box (honouring scale/flip), and SHALL skip the element for that
+  frame if the bitmap is not yet loaded — the host caches the decoded image and
+  redraws on load (src: web/packages/excalidraw-svelte/src/render/scene-renderer.ts, web/apps/web/src/lib/Canvas.svelte)
+
 ### Requirement: Frame rendering
 The system SHALL render a frame as a rounded rectangle (corner radius 8) with a 1px theme-adjusted border, and draw its name label above the top-left corner at `y − 18` using font size 12 (src: Sources/ExcalidrawRender/SceneRenderer.swift:228).
 
