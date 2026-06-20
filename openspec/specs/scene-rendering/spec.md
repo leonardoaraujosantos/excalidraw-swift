@@ -95,6 +95,18 @@ The system SHALL lay out text by splitting on newlines and rendering each line w
 - WHEN it is laid out
 - THEN each line SHALL be rendered at `fontSize * lineHeight` spacing and the measured size SHALL be the widest line by total height (src: Sources/ExcalidrawRender/TextLayout.swift:16)
 
+#### Scenario: Web text is sized in the font it is rendered in
+- GIVEN the web Canvas2D renderer and editor, which size a text element's
+  `width`/`height` and paint its glyphs
+- WHEN a text element is created, edited, or measured
+- THEN both the editor (which stores the element width) and the renderer (which
+  paints it) SHALL use the same resolved font — a hand-drawn family stack
+  mirroring the iOS `FontRegistry` fallbacks (Excalifont/Virgil → Bradley Hand /
+  Comic Sans / cursive; Cascadia → monospace) — and SHALL measure the width with
+  Canvas `measureText` so the stored width (and thus the selection box) matches
+  the rendered glyphs, falling back to the `fontSize · 0.6` heuristic only in
+  non-DOM environments (src: web/packages/excalidraw-svelte/src/text-measure.ts, web/packages/excalidraw-svelte/src/render/scene-renderer.ts)
+
 ### Requirement: Font registry and family mapping
 The system SHALL register bundled TTF/OTF/WOFF2 fonts from the app bundle `Fonts/` directory, map `FontFamily` ids to preferred PostScript names when registered (else system fallbacks: Excalifont/Virgil/Nunito to Bradley Hand, Cascadia to Menlo), validate a mapping by constructing a `CTFont` and comparing PostScript names, cache the results, and make registration idempotent (src: Sources/ExcalidrawRender/FontRegistry.swift:14).
 

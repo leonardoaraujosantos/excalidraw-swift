@@ -97,6 +97,37 @@ describe("EditorStore", () => {
     expect(store.viewport.scrollY).toBeCloseTo(10, 6);
   });
 
+  it("zoomAtScreenPoint keeps the scene point under the cursor fixed", () => {
+    const store = new EditorStore();
+    const cursor = new Point(300, 200);
+    const before = store.viewport.viewToScene(cursor);
+    store.zoomAtScreenPoint(cursor.x, cursor.y, 2);
+    expect(store.viewport.zoom).toBeCloseTo(2, 6);
+    const after = store.viewport.viewToScene(cursor);
+    expect(after.x).toBeCloseTo(before.x, 6);
+    expect(after.y).toBeCloseTo(before.y, 6);
+  });
+
+  it("exposes selection count and group/ungroup availability", () => {
+    const store = new EditorStore();
+    expect(store.selectedCount).toBe(0);
+    expect(store.canGroupSelection).toBe(false);
+    for (const at of [10, 200]) {
+      store.selectTool("rectangle");
+      store.pointer("down", new Point(at, at));
+      store.pointer("move", new Point(at + 40, at + 40));
+      store.pointer("up", new Point(at + 40, at + 40));
+    }
+    store.selectAll();
+    expect(store.selectedCount).toBe(2);
+    expect(store.canGroupSelection).toBe(true);
+    expect(store.canUngroupSelection).toBe(false);
+    store.group();
+    expect(store.canUngroupSelection).toBe(true);
+    store.ungroup();
+    expect(store.canUngroupSelection).toBe(false);
+  });
+
   it("zoom in / out / reset and percent", () => {
     const store = new EditorStore();
     store.zoomIn();

@@ -130,6 +130,19 @@ export class EditorStore {
     return `${Math.round(b.width)} × ${Math.round(b.height)}`;
   }
 
+  /** Number of currently selected elements. */
+  get selectedCount(): number {
+    return this.controller.selectedIDs.size;
+  }
+  /** Whether the selection can be grouped (two or more elements). */
+  get canGroupSelection(): boolean {
+    return this.controller.selectedIDs.size >= 2;
+  }
+  /** Whether the selection contains at least one grouped element to ungroup. */
+  get canUngroupSelection(): boolean {
+    return this.controller.selectedElements.some((el) => el.groupIds.length > 0);
+  }
+
   // MARK: Pointer input (view coordinates in)
 
   pointer(phase: PointerPhase, viewPoint: Point, opts: PointerOptions = {}): void {
@@ -192,6 +205,20 @@ export class EditorStore {
     v.scrollX += translationX / v.zoom;
     v.scrollY += translationY / v.zoom;
     this.controller.zoom = v.zoom;
+    this.bump();
+  }
+
+  /** Zoom by `scale` while keeping the scene point under the given view-space
+   * cursor fixed — so wheel-zoom homes in on what's under the pointer. */
+  zoomAtScreenPoint(viewX: number, viewY: number, scale: number): void {
+    const v = this.viewport;
+    const z0 = v.zoom;
+    const z1 = clampZoom(z0 * scale);
+    if (z1 === z0) return;
+    v.scrollX += viewX / z1 - viewX / z0;
+    v.scrollY += viewY / z1 - viewY / z0;
+    v.zoom = z1;
+    this.controller.zoom = z1;
     this.bump();
   }
 
@@ -339,7 +366,13 @@ export class EditorStore {
     const w = naturalWidth * scale;
     const h = naturalHeight * scale;
     const c = this.viewportCenterScene();
-    const elId = this.controller.insertImage(dataURL, mimeType, new Point(c.x - w / 2, c.y - h / 2), w, h);
+    const elId = this.controller.insertImage(
+      dataURL,
+      mimeType,
+      new Point(c.x - w / 2, c.y - h / 2),
+      w,
+      h,
+    );
     this.bump();
     const el = this.scene.element(elId);
     return el?.type === "image" ? (el.fileId ?? "") : "";

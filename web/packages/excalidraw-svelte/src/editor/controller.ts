@@ -41,6 +41,7 @@ import {
   encodeFile,
   makeFile,
 } from "../model/index.js";
+import { measureTextWidth } from "../text-measure.js";
 import { type CurrentItem, defaultCurrentItem, makeBase } from "./current-item.js";
 import { parseMermaid } from "./mermaid.js";
 import type { PointerEvent, PointerType } from "./pointer-event.js";
@@ -1129,7 +1130,7 @@ export class EditorController {
         ...el,
         text,
         originalText: text,
-        width: Math.max(0, ...lines.map((l) => l.length)) * el.fontSize * 0.6,
+        width: measureTextWidth(text, el.fontSize, el.fontFamily),
         height: lines.length * el.fontSize * el.lineHeight,
       });
     });
@@ -1146,7 +1147,7 @@ export class EditorController {
         const draft = structuredClone(el);
         change(draft);
         const lines = draft.text.split("\n");
-        draft.width = Math.max(0, ...lines.map((l) => l.length)) * draft.fontSize * 0.6;
+        draft.width = measureTextWidth(draft.text, draft.fontSize, draft.fontFamily);
         draft.height = Math.max(1, lines.length) * draft.fontSize * draft.lineHeight;
         scene.replace(draft);
       }

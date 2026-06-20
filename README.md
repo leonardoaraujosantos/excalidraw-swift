@@ -5,7 +5,7 @@ Two from-scratch ports of [Excalidraw](https://excalidraw.com), built as **twins
 - **Native iOS / iPadOS** in **Swift / SwiftUI** (`Sources/`, `App/`) — first-class Apple Pencil, finger-friendly UX, Core Graphics + an optional **Metal** GPU renderer.
 - **Web** in **TypeScript + Svelte 5** (`web/` pnpm workspace) — Canvas2D, reusing the upstream `roughjs` / `perfect-freehand` the Swift side re-ported.
 
-> **Status: both implementations feature-complete, and real-time iPad ↔ browser collaboration is delivered.** An iPad simulator and a browser join one room over a Node relay and converge live — verified end-to-end (XCUITest + Playwright). **600+ Swift tests** (~92% logic coverage) · **444 web unit tests + 18 Playwright E2E** · CI green on both pipelines. Remaining work is a small set of tracked gaps — see **[Known gaps](#known-gaps)**.
+> **Status: both implementations feature-complete, and real-time iPad ↔ browser collaboration is delivered.** An iPad simulator and a browser join one room over a Node relay and converge live — verified end-to-end (XCUITest + Playwright). **600+ Swift tests** (~92% logic coverage) · **450 web unit tests + 22 Playwright E2E** · CI green on both pipelines. Remaining work is a small set of tracked gaps — see **[Known gaps](#known-gaps)**.
 
 ---
 

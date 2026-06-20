@@ -8,6 +8,7 @@ import type {
   TextElement,
 } from "../model/index.js";
 import { viewBackgroundColor } from "../model/index.js";
+import { fontString, measureTextWidth } from "../text-measure.js";
 import { type PathSink, opsToPath } from "./drawable-path.js";
 import { elementDrawable } from "./element-drawable.js";
 import { buildRoughOptions } from "./rough-options.js";
@@ -174,24 +175,23 @@ function drawFreedraw(
 }
 
 /**
- * Approximate rendered size of a text block (widest line × total height), using
- * the same `fontSize · 0.6` advance the editor uses when it sizes text. Mirrors
- * Swift's `TextLayout.measure`, which is what bound-text centering keys on — the
- * stored `width`/`height` can be a container cell size (e.g. a table/Mermaid
- * node), not the glyph extent. (parity: TextLayout.measure)
+ * Rendered size of a text block (widest line × total height), measured with the
+ * same font the glyphs are painted in (see `measureTextWidth`). This is what
+ * bound-text centering keys on — the stored `width`/`height` can be a container
+ * cell size (e.g. a table/Mermaid node), not the glyph extent. (parity:
+ * TextLayout.measure)
  */
 function measureText(el: TextElement): { width: number; height: number } {
   const lines = el.text.split("\n");
-  const longest = lines.reduce((m, l) => Math.max(m, l.length), 0);
   return {
-    width: longest * el.fontSize * 0.6,
+    width: measureTextWidth(el.text, el.fontSize, el.fontFamily),
     height: Math.max(1, lines.length) * el.fontSize * el.lineHeight,
   };
 }
 
 function drawText(ctx: RenderContext, el: TextElement): void {
   ctx.fillStyle = el.strokeColor;
-  ctx.font = `${el.fontSize}px sans-serif`;
+  ctx.font = fontString(el.fontSize, el.fontFamily);
   const lineHeight = el.fontSize * el.lineHeight;
   const lines = el.text.split("\n");
   for (let i = 0; i < lines.length; i++) {

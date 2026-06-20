@@ -241,6 +241,21 @@ pnpm --filter excalidraw-web-app e2e                                # screenshot
     cross-hatch / solid / zigzag) wired to `setFillStyle`. E2E asserts the moved
     note keeps a tight selection, a line vertex drags, and the pattern change
     lands on the element.
+  - **T6 slice 6:** web-host UX parity — three fixes captured by the OpenSpec
+    [`web-client`](../openspec/specs/web-client/spec.md) baseline and a Playwright
+    spec (`pan-zoom-contextmenu.spec.ts`): (1) **navigation** now matches desktop
+    Excalidraw — the **wheel zooms** in/out anchored at the cursor
+    (`zoomAtScreenPoint`), the **middle mouse button pans**, shift+wheel pans
+    horizontally, and the right button no longer disturbs the selection;
+    (2) a **right-click context menu** (Duplicate / Group / Ungroup / Bring to
+    front / Send to back / Select all / Delete) gated on the selection state via
+    new `selectedCount` / `canGroupSelection` / `canUngroupSelection` store
+    getters; (3) **glyph-accurate text** — a shared `text-measure` helper sizes
+    and renders text in the same hand-drawn font stack (mirroring the iOS
+    `FontRegistry` fallbacks) and measures width with Canvas `measureText`, so a
+    text element's selection box follows its rendered glyphs instead of the old
+    `charCount · fontSize · 0.6` monospace guess (with the heuristic kept as the
+    non-DOM fallback for unit tests and golden fixtures).
 - **T7 — Collaboration (in progress):** `@cyberdynecorp/excalidraw-svelte/protocol` — the language-neutral
   collaboration contract shared by the web and Swift clients. Defines the
   versioned WebSocket message schema (`join`/`leave`, `room-state`,

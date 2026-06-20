@@ -2,11 +2,20 @@ import { expect, type Page } from "@playwright/test";
 
 /** A read-only view of the app's editor store exposed on `window.__store`. */
 interface StoreView {
-  scene: { visibleElements: { type: string; text?: string; backgroundColor: string }[] };
+  scene: {
+    visibleElements: {
+      type: string;
+      text?: string;
+      width: number;
+      height: number;
+      backgroundColor: string;
+    }[];
+  };
   controller: { selectedIDs: { size: number } };
   trail: { laser: unknown[]; eraser: unknown[] };
   theme: string;
   zoomPercent: number;
+  viewport: { scrollX: number; scrollY: number; zoom: number };
 }
 
 /** Read a derived value out of the live editor store. */

@@ -60,10 +60,7 @@
     "directory": "web/packages/excalidraw-svelte"
   },
   "homepage": "https://github.com/leonardoaraujosantos/excalidraw-swift-web#readme",
-  "files": [
-    "dist",
-    "README.md"
-  ],
+  "files": ["dist", "README.md"],
   "sideEffects": false,
   "publishConfig": {
     "registry": "https://npm.pkg.github.com"

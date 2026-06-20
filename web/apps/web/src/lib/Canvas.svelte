@@ -10,6 +10,11 @@
   let width = $state(800);
   let height = $state(600);
   let down = false;
+  // Middle-mouse panning: while held, pointer moves pan the canvas instead of
+  // drawing/selecting. Tracks the last client position to derive the delta.
+  let panning = false;
+  let lastPanX = 0;
+  let lastPanY = 0;
 
   // Bitmap cache for image elements: the pure renderer delegates image drawing
   // to the host (it can't load bitmaps synchronously). Load each file's dataURL
@@ -89,16 +94,39 @@
   }
 
   function onPointerDown(e: PointerEvent): void {
+    // Middle button grabs the canvas to pan, regardless of the active tool.
+    if (e.button === 1) {
+      e.preventDefault();
+      panning = true;
+      lastPanX = e.clientX;
+      lastPanY = e.clientY;
+      canvas.setPointerCapture(e.pointerId);
+      return;
+    }
+    // The right button is reserved for the context menu — never let it draw or
+    // change the selection (otherwise right-clicking empty space deselects).
+    if (e.button === 2) return;
     down = true;
     canvas.setPointerCapture(e.pointerId);
     store.pointer("down", toScene(e), opts(e));
   }
   function onPointerMove(e: PointerEvent): void {
+    if (panning) {
+      store.panZoom(e.clientX - lastPanX, e.clientY - lastPanY, 1);
+      lastPanX = e.clientX;
+      lastPanY = e.clientY;
+      return;
+    }
     store.trackPointer(toScene(e)); // broadcast cursor for presence (no-op when solo)
     if (!down) return;
     store.pointer("move", toScene(e), opts(e));
   }
   function onPointerUp(e: PointerEvent): void {
+    if (panning) {
+      panning = false;
+      canvas.releasePointerCapture(e.pointerId);
+      return;
+    }
     if (!down) return;
     down = false;
     store.pointer("up", toScene(e), opts(e));
@@ -111,11 +139,14 @@
 
   function onWheel(e: WheelEvent): void {
     e.preventDefault();
-    if (e.ctrlKey || e.metaKey) {
-      store.panZoom(0, 0, e.deltaY < 0 ? 1.1 : 1 / 1.1);
-    } else {
-      store.panZoom(-e.deltaX, -e.deltaY, 1);
+    const r = canvas.getBoundingClientRect();
+    // Shift+wheel pans horizontally (handy on a plain wheel mouse); otherwise
+    // the wheel zooms in/out around the cursor.
+    if (e.shiftKey && !e.ctrlKey && !e.metaKey) {
+      store.panZoom(-(e.deltaY || e.deltaX), 0, 1);
+      return;
     }
+    store.zoomAtScreenPoint(e.clientX - r.left, e.clientY - r.top, e.deltaY < 0 ? 1.1 : 1 / 1.1);
   }
 </script>
 

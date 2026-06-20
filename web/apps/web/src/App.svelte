@@ -69,8 +69,27 @@
       table: store.selectedTableGroup,
       chart: store.editingChart,
       peers: store.collab === null ? [] : [...store.collab.peers.values()],
+      selectedCount: store.selectedCount,
+      canGroup: store.canGroupSelection,
+      canUngroup: store.canUngroupSelection,
     };
   });
+
+  // Right-click context menu over the canvas (scene coords not needed: it acts
+  // on the current selection). `null` when hidden.
+  let menu = $state<{ x: number; y: number } | null>(null);
+  function openMenu(e: MouseEvent): void {
+    e.preventDefault();
+    const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    menu = { x: e.clientX - r.left, y: e.clientY - r.top };
+  }
+  function closeMenu(): void {
+    menu = null;
+  }
+  function runMenu(action: () => void): void {
+    action();
+    closeMenu();
+  }
 
   const tools: { tool: Tool; label: string }[] = [
     { tool: "selection", label: "▢ Select" },
@@ -145,6 +164,10 @@
   };
 
   function onKeydown(e: KeyboardEvent): void {
+    if (e.key === "Escape" && menu !== null) {
+      closeMenu();
+      return;
+    }
     if (store.editingText !== null) return;
     const target = e.target as HTMLElement | null;
     if (target !== null && (target.tagName === "INPUT" || target.tagName === "TEXTAREA")) return;
@@ -226,7 +249,7 @@
     <button title="Send to back" onclick={() => store.reorder("back")}>⤓</button>
   </section>
 
-  <main class="stage">
+  <main class="stage" oncontextmenu={openMenu}>
     <Canvas {store} {rev} />
     {#if view.editing !== null}
       <!-- svelte-ignore a11y_autofocus -->
@@ -272,6 +295,29 @@
         <button onclick={() => store.cancelChart()}>Cancel</button>
       </div>
     {/if}
+    {#if menu !== null}
+      <button
+        type="button"
+        class="ctx-backdrop"
+        aria-label="Dismiss menu"
+        onclick={closeMenu}
+        oncontextmenu={(e) => {
+          e.preventDefault();
+          closeMenu();
+        }}
+      ></button>
+      <div class="context-menu" data-testid="context-menu" style="left:{menu.x}px;top:{menu.y}px">
+        <button data-testid="ctx-duplicate" disabled={view.selectedCount === 0} onclick={() => runMenu(() => store.duplicate())}>Duplicate</button>
+        <button data-testid="ctx-group" disabled={!view.canGroup} onclick={() => runMenu(() => store.group())}>Group</button>
+        <button data-testid="ctx-ungroup" disabled={!view.canUngroup} onclick={() => runMenu(() => store.ungroup())}>Ungroup</button>
+        <div class="ctx-sep"></div>
+        <button data-testid="ctx-front" disabled={view.selectedCount === 0} onclick={() => runMenu(() => store.reorder("front"))}>Bring to front</button>
+        <button data-testid="ctx-back" disabled={view.selectedCount === 0} onclick={() => runMenu(() => store.reorder("back"))}>Send to back</button>
+        <div class="ctx-sep"></div>
+        <button data-testid="ctx-selectall" onclick={() => runMenu(() => store.selectAll())}>Select all</button>
+        <button data-testid="ctx-delete" disabled={view.selectedCount === 0} onclick={() => runMenu(() => store.deleteSelected())}>Delete</button>
+      </div>
+    {/if}
   </main>
 
   <footer class="status">
@@ -307,7 +353,8 @@
     position: absolute;
     min-width: 120px;
     min-height: 28px;
-    font: 20px system-ui, sans-serif;
+    /* Match the canvas's default hand-drawn text face so editing is WYSIWYG. */
+    font: 20px "Excalifont", "Virgil", "Bradley Hand", "Comic Sans MS", "Segoe Print", cursive;
     border: 1px dashed #4263eb;
     background: transparent;
     resize: none;
@@ -328,6 +375,30 @@
   }
   .app[data-theme="dark"] .chart-editor { background: #2a2a2a; color: #eee; }
   .chart-editor input[type="text"] { width: 140px; }
+  .ctx-backdrop { position: fixed; inset: 0; z-index: 20; padding: 0; border: none; border-radius: 0; background: transparent; cursor: default; }
+  .context-menu {
+    position: absolute;
+    z-index: 21;
+    display: flex;
+    flex-direction: column;
+    min-width: 150px;
+    padding: 4px;
+    background: #fff;
+    border: 1px solid #0003;
+    border-radius: 8px;
+    box-shadow: 0 6px 20px #0003;
+  }
+  .app[data-theme="dark"] .context-menu { background: #2a2a2a; color: #eee; border-color: #fff3; }
+  .context-menu button {
+    border: none;
+    background: transparent;
+    text-align: left;
+    border-radius: 6px;
+    padding: 6px 10px;
+  }
+  .context-menu button:not(:disabled):hover { background: #4263eb22; }
+  .context-menu button:disabled { opacity: 0.4; cursor: default; }
+  .ctx-sep { height: 1px; margin: 4px 6px; background: #0002; }
   .peers { display: inline-flex; gap: 4px; }
   .peer { color: #fff; font-size: 11px; padding: 2px 8px; border-radius: 10px; }
   .sep { width: 1px; align-self: stretch; background: #0002; margin: 0 4px; }
