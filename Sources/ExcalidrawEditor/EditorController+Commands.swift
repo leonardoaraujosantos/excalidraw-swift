@@ -163,7 +163,7 @@ public extension EditorController {
     /// Store the bytes for an image `fileId` without adding an element — used when
     /// an embedder resolves a peer's image (referenced by an already-synced
     /// element) from brokered storage. The renderer picks it up on the next draw.
-    public func setImageFile(id: String, dataURL: String, mimeType: String, created: Int = 0) {
+    func setImageFile(id: String, dataURL: String, mimeType: String, created: Int = 0) {
         store.transaction { scene in
             scene.files[id] = BinaryFileData(mimeType: mimeType, id: id, dataURL: dataURL, created: created)
         }

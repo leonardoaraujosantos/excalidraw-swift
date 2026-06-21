@@ -167,7 +167,9 @@ final class EditorModelTests: XCTestCase {
         let m = EditorModel()
         var brokered: (id: String, bytes: Int, mime: String)?
         m.onImageInserted = { id, d, mime in brokered = (id, d.count, mime) }
-        let fileId = try XCTUnwrap(m.insertImage(data: data, mimeType: "image/png", viewSize: CGSize(width: 400, height: 400)))
+        let fileId = try XCTUnwrap(
+            m.insertImage(data: data, mimeType: "image/png", viewSize: CGSize(width: 400, height: 400))
+        )
         XCTAssertEqual(brokered?.id, fileId)
         XCTAssertEqual(brokered?.bytes, data.count)
         XCTAssertEqual(brokered?.mime, "image/png")
