@@ -17,6 +17,13 @@ import UniformTypeIdentifiers
 /// `PointerInputView` (raw `UITouch`) on iOS.
 public struct EditorView: View {
     @StateObject var model: EditorModel
+    /// When `false`, only the canvas is rendered — the built-in toolbar,
+    /// properties bar, and footer are hidden so an embedder can supply its own
+    /// chrome and drive the editor through ``EditorModel``'s public commands
+    /// (`select(tool:)`, `zoomIn()`, `exportPNG()`, …). Sheets/alerts the model
+    /// raises (export, link, embed, …) stay attached so embedder-triggered
+    /// actions still present.
+    private let showsChrome: Bool
     @Environment(\.horizontalSizeClass) private var sizeClass
     @Environment(\.displayScale) private var displayScale
     @State private var exported = false
@@ -42,6 +49,7 @@ public struct EditorView: View {
 
     public init(scene: ExcalidrawModel.Scene = ExcalidrawModel.Scene(), viewport: Viewport = Viewport()) {
         _model = StateObject(wrappedValue: EditorModel(scene: scene, viewport: viewport))
+        showsChrome = true
     }
 
     /// Mount the editor on a caller-owned ``EditorModel``. Lets an embedder wire
@@ -49,8 +57,9 @@ public struct EditorView: View {
     /// `attachCollabSink` / `applyRemoteScene` / `applyRemoteElements` seams
     /// before mounting — the Swift parity of driving the web `EditorStore` over a
     /// pluggable `CollabSocket`.
-    public init(model: EditorModel) {
+    public init(model: EditorModel, showsChrome: Bool = true) {
         _model = StateObject(wrappedValue: model)
+        self.showsChrome = showsChrome
     }
 
     private var isCompact: Bool {
@@ -59,13 +68,15 @@ public struct EditorView: View {
 
     public var body: some View {
         VStack(spacing: 0) {
-            if !model.zenMode, !isCompact { toolbar; propertiesBar }
+            if showsChrome, !model.zenMode, !isCompact { toolbar; propertiesBar }
             canvas
-            if !model.zenMode {
-                if isCompact { propertiesBar; toolbar }
-                footer
-            } else {
-                zenExitBar
+            if showsChrome {
+                if !model.zenMode {
+                    if isCompact { propertiesBar; toolbar }
+                    footer
+                } else {
+                    zenExitBar
+                }
             }
         }
         .onChange(of: photoItem) { _, item in loadPhoto(item) }
