@@ -1,6 +1,6 @@
 {
   "name": "@cyberdynecorp/excalidraw-svelte",
-  "version": "0.5.0",
+  "version": "0.5.3",
   "description": "Excalidraw port for the web — framework-agnostic math, model, geometry, rendering, editor, and collaboration protocol, plus a reactive Svelte 5 editor store. Exposed via subpath exports.",
   "type": "module",
   "main": "./dist/index.js",

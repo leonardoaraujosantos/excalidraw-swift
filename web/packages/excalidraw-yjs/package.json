@@ -1,6 +1,6 @@
 {
   "name": "@cyberdynecorp/excalidraw-yjs",
-  "version": "0.5.0",
+  "version": "0.5.3",
   "description": "Optional Yjs/CRDT collaboration adapter for @cyberdynecorp/excalidraw-svelte — two-way binds an EditorStore to a Y.Doc for field-level merge and the Yjs provider ecosystem (y-websocket, Hocuspocus, Liveblocks, custom). The element-LWW core stays canonical.",
   "type": "module",
   "main": "./dist/index.js",

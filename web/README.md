@@ -73,7 +73,7 @@ pnpm build:libs              # tsc → dist (.js + .d.ts) for the library and th
 pnpm publish:libs            # rewrites workspace:* → versions, publishes both to GitHub Packages
 ```
 
-Versions live in each package's `package.json` (currently `0.5.0`); the `excalidraw-svelte`, `excalidraw-yjs`, and `excalidraw-relay` (server) packages are released together at the same version. A version tag push (e.g. `0.5.0`) publishes them automatically via `.github/workflows/publish.yml`, which asserts the tag matches all three package versions.
+Versions live in each package's `package.json` (currently `0.5.3`); the `excalidraw-svelte`, `excalidraw-yjs`, and `excalidraw-relay` (server) packages are released together at the same version. A version tag push (e.g. `0.5.3`) publishes them automatically via `.github/workflows/publish.yml`, which asserts the tag matches all three package versions.
 
 ## Develop
 

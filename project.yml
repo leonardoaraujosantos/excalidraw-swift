@@ -36,7 +36,7 @@ targets:
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: ai.cyberdynecorp.excalidraw.app
-        MARKETING_VERSION: "0.5.0"
+        MARKETING_VERSION: "0.5.3"
         CURRENT_PROJECT_VERSION: "1"
         GENERATE_INFOPLIST_FILE: YES
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
